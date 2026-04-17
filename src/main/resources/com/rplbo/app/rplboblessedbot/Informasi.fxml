@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+
+<HBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.blessbot.controller.InformasiController"
+      prefWidth="900" prefHeight="620"
+      stylesheets="@blessbot.css">
+
+    <!-- ===== SIDEBAR ===== -->
+    <VBox styleClass="sidebar" prefWidth="220" spacing="0">
+        <padding><Insets top="24" right="16" bottom="24" left="16"/></padding>
+
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="🤖" style="-fx-font-size:24px;"/>
+            <Label text="BlessBot" styleClass="sidebar-logo-text"/>
+        </HBox>
+        <Region prefHeight="32"/>
+
+        <Button text="🏠  Dashboard" styleClass="sidebar-nav-item"
+                onAction="#onDashboard"/>
+        <Region prefHeight="8"/>
+        <Button text="☰  Edit Menu" styleClass="sidebar-nav-item"
+                onAction="#onEditMenu"/>
+        <Region prefHeight="8"/>
+        <Button text="📍  Lokasi" styleClass="sidebar-nav-item-active"
+                onAction="#onLokasi"/>
+        <Region prefHeight="8"/>
+        <Button text="⏻  Logout" styleClass="sidebar-nav-item"
+                onAction="#onLogout"/>
+
+        <Region VBox.vgrow="ALWAYS"/>
+        <HBox styleClass="sidebar-user-box" spacing="10" alignment="CENTER_LEFT">
+            <Label text="👤" style="-fx-font-size:20px;"/>
+            <Label text="Admin" styleClass="sidebar-user-label"/>
+        </HBox>
+    </VBox>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" styleClass="content-area" spacing="20">
+
+        <!-- Top Bar -->
+        <HBox styleClass="topbar" alignment="CENTER_LEFT">
+            <Label text="Lokasi" styleClass="topbar-title" HBox.hgrow="ALWAYS"/>
+            <Label text="👤" style="-fx-font-size:22px; -fx-text-fill:#5C3D2E;"/>
+        </HBox>
+
+        <!-- Contact Card -->
+        <VBox styleClass="card-white" spacing="20">
+            <Label text="Kontak" styleClass="label-subtitle"
+                   style="-fx-font-size:18px; -fx-font-weight:bold;"/>
+            <Region styleClass="divider"/>
+
+            <!-- WhatsApp -->
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <StackPane styleClass="contact-icon-circle">
+                    <Label text="📞" style="-fx-font-size:18px;"/>
+                </StackPane>
+                <VBox spacing="2">
+                    <Label text="WhatsApp/Telepon" styleClass="contact-label-type"/>
+                    <Label fx:id="lblPhone" text="+62 xxx-xxxx-xxxx"
+                           styleClass="contact-label-value"/>
+                </VBox>
+            </HBox>
+
+            <Region styleClass="divider"/>
+
+            <!-- Email -->
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <StackPane styleClass="contact-icon-circle">
+                    <Label text="✉" style="-fx-font-size:18px;"/>
+                </StackPane>
+                <VBox spacing="2">
+                    <Label text="Email" styleClass="contact-label-type"/>
+                    <Label fx:id="lblEmail" text="@kedai@blessbot.id"
+                           styleClass="contact-label-value"/>
+                </VBox>
+            </HBox>
+
+            <Region styleClass="divider"/>
+
+            <!-- Instagram -->
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <StackPane styleClass="contact-icon-circle">
+                    <Label text="📷" style="-fx-font-size:18px;"/>
+                </StackPane>
+                <VBox spacing="2">
+                    <Label text="Instagram" styleClass="contact-label-type"/>
+                    <Label fx:id="lblInstagram" text="@kedaikopi"
+                           styleClass="contact-label-value"/>
+                </VBox>
+            </HBox>
+        </VBox>
+
+        <!-- Edit Button -->
+        <Button text="+ Edit Informasi" styleClass="btn-secondary"
+                prefWidth="240" onAction="#onEditInformasi"/>
+
+        <Region VBox.vgrow="ALWAYS"/>
+    </VBox>
+</HBox>

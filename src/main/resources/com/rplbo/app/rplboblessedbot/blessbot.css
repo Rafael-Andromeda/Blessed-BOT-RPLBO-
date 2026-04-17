@@ -1,0 +1,619 @@
+/* ========================================
+   BlessBot - JavaFX CSS Stylesheet
+   Kedai Kopi Blessed
+   ======================================== */
+
+/* ---- ROOT / COLOR PALETTE ---- */
+.root {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -color-primary: #5C3D2E;
+    -color-primary-light: #7B5441;
+    -color-accent: #C8956C;
+    -color-sidebar: #E8A87C;
+    -color-bg: #FFF8EE;
+    -color-card: #F5ECD7;
+    -color-card-dark: #E2D0B5;
+    -color-white: #FFFFFF;
+    -color-text-dark: #3B2414;
+    -color-text-muted: #8B6E5A;
+    -color-danger: #E05555;
+    -color-danger-light: #F5A0A0;
+    -fx-background-color: #FFF8EE;
+}
+
+/* ========================================
+   SIDEBAR
+   ======================================== */
+.sidebar {
+    -fx-background-color: #E8A87C;
+    -fx-min-width: 220px;
+    -fx-pref-width: 220px;
+}
+
+.sidebar-logo-text {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+}
+
+.sidebar-nav-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #3B2414;
+    -fx-font-size: 15px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+    -fx-padding: 10 16 10 16;
+    -fx-background-radius: 20;
+    -fx-alignment: CENTER_LEFT;
+    -fx-pref-width: 190px;
+}
+
+.sidebar-nav-item:hover {
+    -fx-background-color: rgba(92, 61, 46, 0.15);
+}
+
+.sidebar-nav-item-active {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #3B2414;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 10 16 10 16;
+    -fx-background-radius: 20;
+    -fx-alignment: CENTER_LEFT;
+    -fx-pref-width: 190px;
+    -fx-effect: dropshadow(gaussian, rgba(92,61,46,0.18), 6, 0, 0, 2);
+}
+
+.sidebar-user-box {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 20;
+    -fx-padding: 8 16 8 16;
+    -fx-pref-width: 190px;
+}
+
+.sidebar-user-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+}
+
+/* ========================================
+   TOPBAR / HEADER
+   ======================================== */
+.topbar {
+    -fx-background-color: #FFF8EE;
+    -fx-border-color: transparent transparent #E2D0B5 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 14 24 14 24;
+}
+
+.topbar-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+}
+
+/* ========================================
+   CONTENT AREA
+   ======================================== */
+.content-area {
+    -fx-background-color: #FFF8EE;
+    -fx-padding: 24;
+}
+
+/* ========================================
+   CARDS
+   ======================================== */
+.card {
+    -fx-background-color: #F5ECD7;
+    -fx-background-radius: 16;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(92,61,46,0.10), 8, 0, 0, 3);
+}
+
+.card-white {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 16;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(92,61,46,0.10), 8, 0, 0, 3);
+}
+
+.card-dark {
+    -fx-background-color: #7B5441;
+    -fx-background-radius: 16;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(92,61,46,0.20), 10, 0, 0, 4);
+}
+
+.card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #C8956C;
+}
+
+.card-value {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+}
+
+.card-muted {
+    -fx-font-size: 13px;
+    -fx-text-fill: #8B6E5A;
+}
+
+/* ========================================
+   BUTTONS
+   ======================================== */
+.btn-primary {
+    -fx-background-color: #5C3D2E;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-padding: 10 20 10 20;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #7B5441;
+    -fx-effect: dropshadow(gaussian, rgba(92,61,46,0.3), 8, 0, 0, 2);
+}
+
+.btn-secondary {
+    -fx-background-color: #F5ECD7;
+    -fx-text-fill: #3B2414;
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-background-radius: 10;
+    -fx-padding: 10 20 10 20;
+    -fx-cursor: hand;
+    -fx-border-color: #C8956C;
+    -fx-border-radius: 10;
+    -fx-border-width: 1.5;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: #E2D0B5;
+}
+
+.btn-danger {
+    -fx-background-color: #E05555;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-padding: 10 20 10 20;
+    -fx-cursor: hand;
+}
+
+.btn-danger:hover {
+    -fx-background-color: #C03E3E;
+}
+
+.btn-cancel {
+    -fx-background-color: #F5A0A0;
+    -fx-text-fill: #3B2414;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-padding: 10 20 10 20;
+    -fx-cursor: hand;
+}
+
+/* ========================================
+   LABELS / TEXT
+   ======================================== */
+.label-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+}
+
+.label-subtitle {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+}
+
+.label-body {
+    -fx-font-size: 13px;
+    -fx-text-fill: #3B2414;
+}
+
+.label-muted {
+    -fx-font-size: 12px;
+    -fx-text-fill: #8B6E5A;
+}
+
+.label-white {
+    -fx-font-size: 13px;
+    -fx-text-fill: #FFFFFF;
+}
+
+.label-accent {
+    -fx-font-size: 13px;
+    -fx-text-fill: #C8956C;
+    -fx-font-weight: bold;
+}
+
+/* ========================================
+   DIVIDER
+   ======================================== */
+.divider {
+    -fx-background-color: #E2D0B5;
+    -fx-pref-height: 1;
+    -fx-min-height: 1;
+    -fx-max-height: 1;
+}
+
+/* ========================================
+   STATUS BADGE
+   ======================================== */
+.badge-active {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #3B2414;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6;
+    -fx-padding: 4 10 4 10;
+    -fx-border-color: #C8956C;
+    -fx-border-radius: 6;
+    -fx-border-width: 1;
+}
+
+/* ========================================
+   CHAT - USER BUBBLE
+   ======================================== */
+.chat-bubble-user {
+    -fx-background-color: #E0D5C8;
+    -fx-background-radius: 16 2 16 16;
+    -fx-padding: 10 14 10 14;
+    -fx-max-width: 280px;
+}
+
+.chat-bubble-bot {
+    -fx-background-color: #F5ECD7;
+    -fx-background-radius: 2 16 16 16;
+    -fx-padding: 12 16 12 16;
+    -fx-max-width: 320px;
+    -fx-effect: dropshadow(gaussian, rgba(92,61,46,0.10), 5, 0, 0, 2);
+}
+
+.chat-bubble-user-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: #3B2414;
+}
+
+.chat-bubble-bot-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: #3B2414;
+}
+
+/* ========================================
+   CHAT INPUT BAR
+   ======================================== */
+.chat-input-bar {
+    -fx-background-color: #5C3D2E;
+    -fx-padding: 12 16 12 16;
+}
+
+.chat-text-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: #FFFFFF;
+    -fx-prompt-text-fill: #C8A08A;
+    -fx-font-size: 14px;
+    -fx-border-color: transparent;
+    -fx-background-radius: 0;
+    -fx-padding: 4 0 4 0;
+}
+
+.chat-send-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #E8A87C;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-padding: 4 0 4 16;
+}
+
+.chat-send-btn:hover {
+    -fx-text-fill: #FFFFFF;
+}
+
+/* ========================================
+   CHAT QUICK REPLY BUTTONS
+   ======================================== */
+.quick-reply-btn {
+    -fx-background-color: #7B5441;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-padding: 10 18 10 18;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+
+.quick-reply-btn:hover {
+    -fx-background-color: #5C3D2E;
+}
+
+/* ========================================
+   FACILITY CARD (Grid)
+   ======================================== */
+.facility-card {
+    -fx-background-color: #7B5441;
+    -fx-background-radius: 14;
+    -fx-padding: 20;
+    -fx-alignment: CENTER;
+    -fx-pref-width: 120px;
+    -fx-pref-height: 100px;
+    -fx-cursor: hand;
+}
+
+.facility-card:hover {
+    -fx-background-color: #5C3D2E;
+    -fx-effect: dropshadow(gaussian, rgba(92,61,46,0.3), 10, 0, 0, 3);
+}
+
+.facility-card-text {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FFFFFF;
+    -fx-text-alignment: CENTER;
+}
+
+/* ========================================
+   MENU TABLE
+   ======================================== */
+.menu-table {
+    -fx-background-color: #F5ECD7;
+    -fx-background-radius: 12;
+    -fx-padding: 0;
+    -fx-border-color: transparent;
+}
+
+.menu-table .column-header-background {
+    -fx-background-color: #E2D0B5;
+}
+
+.menu-table .column-header {
+    -fx-background-color: transparent;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #5C3D2E;
+}
+
+.menu-table .table-row-cell {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #E2D0B5 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 6 0 6 0;
+}
+
+.menu-table .table-row-cell:hover {
+    -fx-background-color: rgba(200, 149, 108, 0.15);
+}
+
+.menu-table .table-cell {
+    -fx-text-fill: #3B2414;
+    -fx-font-size: 13px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 8 10 8 10;
+}
+
+/* ========================================
+   CONTACT ITEM (Lokasi page)
+   ======================================== */
+.contact-icon-circle {
+    -fx-background-color: transparent;
+    -fx-border-color: #3B2414;
+    -fx-border-radius: 50;
+    -fx-border-width: 2;
+    -fx-min-width: 44px;
+    -fx-min-height: 44px;
+    -fx-max-width: 44px;
+    -fx-max-height: 44px;
+    -fx-background-radius: 50;
+    -fx-alignment: CENTER;
+}
+
+.contact-label-type {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #C8956C;
+}
+
+.contact-label-value {
+    -fx-font-size: 14px;
+    -fx-text-fill: #3B2414;
+}
+
+/* ========================================
+   MAP PLACEHOLDER
+   ======================================== */
+.map-placeholder {
+    -fx-background-color: #E2D0B5;
+    -fx-background-radius: 12;
+    -fx-pref-height: 160px;
+    -fx-alignment: CENTER;
+}
+
+/* ========================================
+   LOGIN ACTIVITY ITEM
+   ======================================== */
+.login-activity-item {
+    -fx-padding: 6 0 6 0;
+    -fx-border-color: transparent transparent #E2D0B5 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.login-time-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+}
+
+.login-status-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: #8B6E5A;
+}
+
+/* ========================================
+   LOGOUT CONFIRM BOX
+   ======================================== */
+.logout-confirm-box {
+    -fx-background-color: #F5A0A0;
+    -fx-background-radius: 16;
+    -fx-padding: 20 24 20 24;
+}
+
+.logout-confirm-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+}
+
+.logout-confirm-text {
+    -fx-font-size: 13px;
+    -fx-text-fill: #3B2414;
+    -fx-wrap-text: true;
+}
+
+/* ========================================
+   SCROLLPANE
+   ======================================== */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .track,
+.scroll-bar:horizontal .track {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .thumb,
+.scroll-bar:horizontal .thumb {
+    -fx-background-color: #C8956C;
+    -fx-background-radius: 4;
+}
+
+/* ========================================
+   TEXT FIELD / INPUT
+   ======================================== */
+.text-field-normal {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #3B2414;
+    -fx-prompt-text-fill: #8B6E5A;
+    -fx-font-size: 14px;
+    -fx-background-radius: 10;
+    -fx-border-color: #E2D0B5;
+    -fx-border-radius: 10;
+    -fx-border-width: 1.5;
+    -fx-padding: 8 12 8 12;
+}
+
+.text-field-normal:focused {
+    -fx-border-color: #C8956C;
+    -fx-effect: dropshadow(gaussian, rgba(200,149,108,0.3), 6, 0, 0, 0);
+}
+
+/* ========================================
+   MENU CATEGORY TAB BUTTONS
+   ======================================== */
+.tab-btn {
+    -fx-background-color: #7B5441;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 8 16 8 16;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+
+.tab-btn:hover {
+    -fx-background-color: #5C3D2E;
+}
+
+.tab-btn-active {
+    -fx-background-color: #5C3D2E;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 8 16 8 16;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-effect: dropshadow(gaussian, rgba(92,61,46,0.3), 6, 0, 0, 2);
+}
+
+/* ========================================
+   MENU ITEM ROW (chat)
+   ======================================== */
+.menu-item-row {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 10;
+    -fx-padding: 10 14 10 14;
+    -fx-border-color: #F5ECD7;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+}
+
+.menu-item-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+}
+
+.menu-item-desc {
+    -fx-font-size: 12px;
+    -fx-text-fill: #8B6E5A;
+}
+
+.menu-item-price {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+}
+
+/* ========================================
+   IMAGE PLACEHOLDER
+   ======================================== */
+.image-placeholder {
+    -fx-background-color: #E2D0B5;
+    -fx-background-radius: 8;
+    -fx-border-color: #C8956C;
+    -fx-border-radius: 8;
+    -fx-border-width: 1.5;
+    -fx-alignment: CENTER;
+    -fx-min-width: 48px;
+    -fx-min-height: 48px;
+    -fx-max-width: 48px;
+    -fx-max-height: 48px;
+}
+
+/* ========================================
+   WELCOME BANNER (Chat)
+   ======================================== */
+.welcome-banner {
+    -fx-background-color: #F5ECD7;
+    -fx-background-radius: 16;
+    -fx-padding: 18 20 18 20;
+}
+
+.welcome-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3B2414;
+    -fx-text-alignment: CENTER;
+}

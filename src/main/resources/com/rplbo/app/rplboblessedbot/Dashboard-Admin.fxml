@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.shape.*?>
+
+<HBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.blessbot.controller.DashboardAdminController"
+      prefWidth="900" prefHeight="620"
+      stylesheets="@blessbot.css">
+
+    <!-- ===== SIDEBAR ===== -->
+    <VBox styleClass="sidebar" prefWidth="220" spacing="0">
+        <padding><Insets top="24" right="16" bottom="24" left="16"/></padding>
+
+        <!-- Logo -->
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="🤖" style="-fx-font-size:24px;"/>
+            <Label text="BlessBot" styleClass="sidebar-logo-text"/>
+        </HBox>
+
+        <Region prefHeight="32"/>
+
+        <!-- Nav Items -->
+        <Button text="🏠  Dashboard" styleClass="sidebar-nav-item-active"
+                onAction="#onDashboard"/>
+        <Region prefHeight="8"/>
+        <Button text="☰  Edit Menu" styleClass="sidebar-nav-item"
+                onAction="#onEditMenu"/>
+        <Region prefHeight="8"/>
+        <Button text="📍  Lokasi" styleClass="sidebar-nav-item"
+                onAction="#onLokasi"/>
+        <Region prefHeight="8"/>
+        <Button text="⏻  Logout" styleClass="sidebar-nav-item"
+                onAction="#onLogout"/>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <!-- User Box -->
+        <HBox styleClass="sidebar-user-box" spacing="10" alignment="CENTER_LEFT">
+            <Label text="👤" style="-fx-font-size:20px;"/>
+            <Label text="Admin" styleClass="sidebar-user-label"/>
+        </HBox>
+    </VBox>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" styleClass="content-area" spacing="20">
+
+        <!-- Top Bar -->
+        <HBox styleClass="topbar" alignment="CENTER_LEFT">
+            <Label text="Dashboard" styleClass="topbar-title" HBox.hgrow="ALWAYS"/>
+            <Label text="👤" style="-fx-font-size:22px; -fx-text-fill:#5C3D2E;"/>
+        </HBox>
+
+        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="scroll-pane">
+            <VBox spacing="16" style="-fx-padding: 16 0 0 0;">
+
+                <!-- Welcome -->
+                <Label text="Selamat Datang Admin!" styleClass="label-title"
+                       style="-fx-font-size:22px;"/>
+
+                <HBox spacing="16">
+                    <!-- Left: Bot Card -->
+                    <VBox HBox.hgrow="ALWAYS" styleClass="card"
+                          alignment="CENTER" spacing="12" prefHeight="180">
+                        <Label text="🤖" style="-fx-font-size:64px;"/>
+                        <Label text="BlessBot" styleClass="sidebar-logo-text"
+                               style="-fx-font-size:20px;"/>
+                    </VBox>
+
+                    <!-- Right: Login Activity -->
+                    <VBox prefWidth="220" styleClass="card" spacing="10">
+                        <Label text="Aktivitas Login Terakhir"
+                               styleClass="card-title"/>
+                        <Region styleClass="divider"/>
+
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Label text="🕐" style="-fx-font-size:16px;"/>
+                            <VBox>
+                                <Label text="Admin berhasil login"
+                                       styleClass="login-status-label"/>
+                                <Label text="10:30 hari ini"
+                                       styleClass="login-time-label"/>
+                            </VBox>
+                        </HBox>
+                        <Region styleClass="divider"/>
+
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Label text="🕐" style="-fx-font-size:16px;"/>
+                            <VBox>
+                                <Label text="Admin berhasil login"
+                                       styleClass="login-status-label"/>
+                                <Label text="Jumat, 2 Maret - 12:02"
+                                       styleClass="login-time-label"/>
+                            </VBox>
+                        </HBox>
+                        <Region styleClass="divider"/>
+
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Label text="🕐" style="-fx-font-size:16px;"/>
+                            <VBox>
+                                <Label text="Admin berhasil login"
+                                       styleClass="login-status-label"/>
+                                <Label text="Kamis, 1 Maret - 11:00"
+                                       styleClass="login-time-label"/>
+                            </VBox>
+                        </HBox>
+                        <Region styleClass="divider"/>
+
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Label text="🕐" style="-fx-font-size:16px;"/>
+                            <VBox>
+                                <Label text="Admin berhasil login"
+                                       styleClass="login-status-label"/>
+                                <Label text="Rabu, 28 Feb - 11:30"
+                                       styleClass="login-time-label"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+                </HBox>
+
+                <!-- Bottom Row: Manajemen Menu + Informasi Kedai -->
+                <HBox spacing="16">
+                    <!-- Manajemen Menu -->
+                    <VBox styleClass="card" spacing="12" HBox.hgrow="ALWAYS">
+                        <Label text="Manajemen Menu" styleClass="card-title"/>
+                        <Label fx:id="lblMenuCount" text="Menu Terdaftar: 10"
+                               styleClass="card-value"/>
+                        <Region styleClass="divider"/>
+                        <Button text="+ Tambah Menu" styleClass="btn-primary"
+                                maxWidth="Infinity" onAction="#onTambahMenu"/>
+                    </VBox>
+
+                    <!-- Informasi Kedai -->
+                    <VBox styleClass="card" spacing="10" HBox.hgrow="ALWAYS">
+                        <Label text="Informasi Kedai" styleClass="card-title"/>
+                        <Label text="Jam Operasional" styleClass="card-value"/>
+                        <Label fx:id="lblJamOps" text="08:00 - 22:00"
+                               styleClass="label-body"/>
+                        <Region styleClass="divider"/>
+                        <Label text="Alamat" styleClass="card-value"/>
+                        <Label fx:id="lblAlamat" text="Jl. Anggrek No.10 Jogja"
+                               styleClass="label-body"/>
+                        <Region styleClass="divider"/>
+                        <Button text="Edit Info" styleClass="btn-secondary"
+                                maxWidth="Infinity" onAction="#onEditInfo"/>
+                    </VBox>
+                </HBox>
+
+            </VBox>
+        </ScrollPane>
+    </VBox>
+</HBox>

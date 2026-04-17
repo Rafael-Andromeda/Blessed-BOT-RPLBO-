@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+
+<HBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.blessbot.controller.ManajemenMenuController"
+      prefWidth="900" prefHeight="620"
+      stylesheets="@blessbot.css">
+
+    <!-- ===== SIDEBAR ===== -->
+    <VBox styleClass="sidebar" prefWidth="220" spacing="0">
+        <padding><Insets top="24" right="16" bottom="24" left="16"/></padding>
+
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="🤖" style="-fx-font-size:24px;"/>
+            <Label text="BlessBot" styleClass="sidebar-logo-text"/>
+        </HBox>
+        <Region prefHeight="32"/>
+
+        <Button text="🏠  Dashboard" styleClass="sidebar-nav-item"
+                onAction="#onDashboard"/>
+        <Region prefHeight="8"/>
+        <Button text="☰  Edit Menu" styleClass="sidebar-nav-item-active"
+                onAction="#onEditMenu"/>
+        <Region prefHeight="8"/>
+        <Button text="📍  Lokasi" styleClass="sidebar-nav-item"
+                onAction="#onLokasi"/>
+        <Region prefHeight="8"/>
+        <Button text="⏻  Logout" styleClass="sidebar-nav-item"
+                onAction="#onLogout"/>
+
+        <Region VBox.vgrow="ALWAYS"/>
+        <HBox styleClass="sidebar-user-box" spacing="10" alignment="CENTER_LEFT">
+            <Label text="👤" style="-fx-font-size:20px;"/>
+            <Label text="Admin" styleClass="sidebar-user-label"/>
+        </HBox>
+    </VBox>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" styleClass="content-area" spacing="16">
+
+        <!-- Top Bar -->
+        <HBox styleClass="topbar" alignment="CENTER_LEFT">
+            <Label text="Manajemen Menu" styleClass="topbar-title" HBox.hgrow="ALWAYS"/>
+            <Label text="👤" style="-fx-font-size:22px; -fx-text-fill:#5C3D2E;"/>
+        </HBox>
+
+        <!-- Add Button -->
+        <Button text="+ Tambah Menu" styleClass="btn-primary"
+                prefWidth="200" onAction="#onTambahMenu"/>
+
+        <!-- Menu Table -->
+        <VBox styleClass="card" VBox.vgrow="ALWAYS" spacing="0">
+            <!-- Table Header -->
+            <HBox style="-fx-background-color:#E2D0B5; -fx-background-radius:8 8 0 0;
+                         -fx-padding:12 10 12 10;">
+                <Label text="Foto Menu" styleClass="label-subtitle"
+                       prefWidth="90" style="-fx-font-size:13px;"/>
+                <Label text="Nama Menu" styleClass="label-subtitle"
+                       HBox.hgrow="ALWAYS" style="-fx-font-size:13px;"/>
+                <Label text="Harga" styleClass="label-subtitle"
+                       prefWidth="110" style="-fx-font-size:13px;"/>
+                <Label text="Aksi" styleClass="label-subtitle"
+                       prefWidth="60" style="-fx-font-size:13px;
+                                             -fx-alignment:CENTER;"/>
+            </HBox>
+
+            <!-- TableView (data injected by controller) -->
+            <TableView fx:id="menuTable" VBox.vgrow="ALWAYS"
+                       styleClass="menu-table"
+                       style="-fx-background-color:transparent;
+                              -fx-border-color:transparent;">
+                <columns>
+                    <!-- Foto Column -->
+                    <TableColumn fx:id="colFoto" text="Foto" prefWidth="90">
+                    </TableColumn>
+
+                    <!-- Nama Column -->
+                    <TableColumn fx:id="colNama" text="Nama Menu"
+                                 prefWidth="220">
+                    </TableColumn>
+
+                    <!-- Harga Column -->
+                    <TableColumn fx:id="colHarga" text="Harga"
+                                 prefWidth="110">
+                    </TableColumn>
+
+                    <!-- Aksi Column -->
+                    <TableColumn fx:id="colAksi" text="Aksi"
+                                 prefWidth="60">
+                    </TableColumn>
+                </columns>
+                <placeholder>
+                    <Label text="Belum ada menu. Klik + Tambah Menu."
+                           styleClass="label-muted"/>
+                </placeholder>
+            </TableView>
+        </VBox>
+
+    </VBox>
+</HBox>
