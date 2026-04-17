@@ -1,4 +1,4 @@
-package com.blessbot.controller;
+package com.rplbo.app.rplboblessedbot;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;

@@ -7,7 +7,7 @@
 
 <HBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.blessbot.controller.ManajemenMenuController"
+      fx:controller="com.rplbo.app.rplboblessedbot.ManajemenMenuController"
       prefWidth="900" prefHeight="620"
       stylesheets="@blessbot.css">
 

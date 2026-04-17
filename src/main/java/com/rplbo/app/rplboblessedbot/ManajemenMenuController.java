@@ -1,4 +1,4 @@
-package com.blessbot.controller;
+package com.rplbo.app.rplboblessedbot;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
