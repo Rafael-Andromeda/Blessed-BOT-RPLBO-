@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+
+<!--
+    User-Chat.fxml  —  Tampilan chat terpadu BlessBot
+    Controller  : com.blessbot.controller.UserChatController
+    Perilaku    : Satu layar; konten chat berubah otomatis berdasarkan topik.
+                  Jika user mengetik / menekan quick-reply tentang:
+                    • Menu & Harga      → tampil kartu menu dengan tab kategori
+                    • Fasilitas         → tampil grid fasilitas
+                    • Jam Operasional   → tampil kartu jam
+                    • Lokasi            → tampil kartu lokasi + tombol Maps
+-->
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.blessbot.controller.UserChatController"
+      prefWidth="700" prefHeight="660"
+      styleClass="root"
+      stylesheets="@blessbot.css">
+
+    <!-- ===== TOP BAR ===== -->
+    <HBox style="-fx-background-color:#FFF8EE; -fx-padding:14 20 14 20;
+                 -fx-border-color:transparent transparent #E2D0B5 transparent;
+                 -fx-border-width:0 0 1 0;"
+          alignment="CENTER_LEFT" spacing="10">
+        <Label text="🤖" style="-fx-font-size:28px;"/>
+        <VBox spacing="1" HBox.hgrow="ALWAYS">
+            <Label text="BlessBot" styleClass="sidebar-logo-text"/>
+            <Label text="Kedai Kopi Blessed" styleClass="label-muted"
+                   style="-fx-font-size:11px;"/>
+        </VBox>
+        <!-- Label ini diupdate controller sesuai topik aktif -->
+        <Label fx:id="lblScreenTag"
+               text="User-Chat"
+               styleClass="badge-active"
+               style="-fx-font-size:11px;"/>
+    </HBox>
+
+    <!-- ===== CHAT SCROLL AREA ===== -->
+    <ScrollPane fx:id="chatScrollPane" fitToWidth="true"
+                VBox.vgrow="ALWAYS" styleClass="scroll-pane">
+        <VBox fx:id="chatContainer" spacing="16"
+              style="-fx-padding:20 20 10 20;">
+
+            <!-- ── Welcome Banner (selalu tampil di awal) ── -->
+            <VBox styleClass="welcome-banner" spacing="10" alignment="CENTER">
+                <HBox alignment="CENTER" spacing="14">
+                    <VBox spacing="6" alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                        <Label text="Selamat Datang di Kedai Kopi Blessed!"
+                               styleClass="welcome-title" wrapText="true"/>
+                    </VBox>
+                    <StackPane styleClass="image-placeholder"
+                               style="-fx-min-width:80px; -fx-min-height:72px;
+                                      -fx-max-width:80px; -fx-max-height:72px;
+                                      -fx-background-radius:12;">
+                        <Label text="🏪" style="-fx-font-size:30px;"/>
+                    </StackPane>
+                </HBox>
+                <Label text="Halo! Saya BlessBot, chatbot yang siap membantu Anda mencari informasi tentang Kedai Kopi kami. Silakan ajukan pertanyaan Anda!"
+                       styleClass="label-body" wrapText="true"
+                       style="-fx-background-color:#E2D0B5;
+                              -fx-background-radius:12;
+                              -fx-padding:12 14 12 14;"/>
+
+                <!-- Quick-reply chips di welcome -->
+                <HBox spacing="8" alignment="CENTER">
+                    <Button text="Menu &amp; Harga"  styleClass="quick-reply-btn"
+                            onAction="#onMenuDanHarga"/>
+                    <Button text="Fasilitas"         styleClass="quick-reply-btn"
+                            onAction="#onFasilitas"/>
+                    <Button text="Jam Operasional"   styleClass="quick-reply-btn"
+                            onAction="#onJamOperasional"/>
+                    <Button text="Lokasi Kedai"      styleClass="quick-reply-btn"
+                            onAction="#onLokasiKedai"/>
+                </HBox>
+            </VBox>
+
+            <!--
+                ═══════════════════════════════════════════════════
+                  AREA DINAMIS  —  diisi oleh UserChatController
+                ═══════════════════════════════════════════════════
+                Controller memanggil helper sesuai topik:
+                  showMenuDanHarga()      → User-Chat-Menu-dan-Harga  (sub-scene)
+                  showFasilitas()         → User-Chat-Fasilitas        (sub-scene)
+                  showJamOperasional()    → User-Chat-Jam-Operasional  (sub-scene)
+                  showLokasi()            → User-Chat-Lokasi           (sub-scene)
+
+                Setiap bubble yang ditambahkan controller terdiri dari:
+                  1. HBox alignment=CENTER_RIGHT  → pesan user
+                  2. HBox alignment=CENTER_LEFT   → balasan bot + konten khusus topik
+                  3. HBox alignment=CENTER_RIGHT  → follow-up quick-reply
+            -->
+
+        </VBox>
+    </ScrollPane>
+
+    <!-- ===== CHAT INPUT BAR ===== -->
+    <HBox styleClass="chat-input-bar" alignment="CENTER" spacing="0">
+        <TextField fx:id="inputField"
+                   styleClass="chat-text-field"
+                   promptText="Ketik pesan di sini..."
+                   HBox.hgrow="ALWAYS"
+                   onAction="#onSend"/>
+        <Button text="Kirim" styleClass="chat-send-btn"
+                onAction="#onSend"/>
+    </HBox>
+
+</VBox>

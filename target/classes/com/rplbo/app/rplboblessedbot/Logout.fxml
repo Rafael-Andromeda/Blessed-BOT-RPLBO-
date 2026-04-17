@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+
+<HBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.blessbot.controller.LogoutController"
+      prefWidth="900" prefHeight="620"
+      stylesheets="@blessbot.css">
+
+    <!-- ===== SIDEBAR ===== -->
+    <VBox styleClass="sidebar" prefWidth="220" spacing="0">
+        <padding><Insets top="24" right="16" bottom="24" left="16"/></padding>
+
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="🤖" style="-fx-font-size:24px;"/>
+            <Label text="BlessBot" styleClass="sidebar-logo-text"/>
+        </HBox>
+        <Region prefHeight="32"/>
+
+        <Button text="🏠  Dashboard" styleClass="sidebar-nav-item"
+                onAction="#onDashboard"/>
+        <Region prefHeight="8"/>
+        <Button text="☰  Edit Menu" styleClass="sidebar-nav-item"
+                onAction="#onEditMenu"/>
+        <Region prefHeight="8"/>
+        <Button text="📍  Lokasi" styleClass="sidebar-nav-item"
+                onAction="#onLokasi"/>
+        <Region prefHeight="8"/>
+        <Button text="⏻  Logout" styleClass="sidebar-nav-item-active"
+                onAction="#onLogout"/>
+
+        <Region VBox.vgrow="ALWAYS"/>
+        <HBox styleClass="sidebar-user-box" spacing="10" alignment="CENTER_LEFT">
+            <Label text="👤" style="-fx-font-size:20px;"/>
+            <Label text="Admin" styleClass="sidebar-user-label"/>
+        </HBox>
+    </VBox>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" styleClass="content-area" spacing="20">
+
+        <!-- Top Bar -->
+        <HBox styleClass="topbar" alignment="CENTER_LEFT">
+            <Label text="Logout" styleClass="topbar-title" HBox.hgrow="ALWAYS"/>
+            <Label text="👤" style="-fx-font-size:22px; -fx-text-fill:#5C3D2E;"/>
+        </HBox>
+
+        <!-- Admin Profile Card -->
+        <VBox styleClass="card-dark" spacing="0">
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <StackPane style="-fx-min-width:56px; -fx-min-height:56px;
+                                  -fx-background-color:#3B2414;
+                                  -fx-background-radius:28;">
+                    <Label text="👤" style="-fx-font-size:28px;"/>
+                </StackPane>
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Admin" styleClass="label-white"
+                           style="-fx-font-size:18px; -fx-font-weight:bold;"/>
+                    <Label fx:id="lblAdminEmail" text="admin@blessbot.id"
+                           styleClass="label-white"
+                           style="-fx-underline:true; -fx-font-size:13px;"/>
+                </VBox>
+                <Label text="Aktif" styleClass="badge-active"/>
+            </HBox>
+        </VBox>
+
+        <!-- Last Activity Card -->
+        <VBox styleClass="card" spacing="12">
+            <Label text="Aktifitas terakhir"
+                   styleClass="label-subtitle"/>
+            <Region styleClass="divider"/>
+            <HBox>
+                <Label fx:id="lblActivity1" text="Edit menu &quot;Kopi Susu&quot;"
+                       styleClass="label-body" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="lblTime1" text="12.18"
+                       styleClass="label-subtitle"/>
+            </HBox>
+            <Region styleClass="divider"/>
+            <HBox>
+                <Label fx:id="lblActivity2" text="Tambah menu baru"
+                       styleClass="label-body" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="lblTime2" text="11.54"
+                       styleClass="label-subtitle"/>
+            </HBox>
+        </VBox>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <!-- Logout Confirm Box -->
+        <VBox styleClass="logout-confirm-box" spacing="16">
+            <HBox alignment="CENTER_LEFT" spacing="20">
+                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                    <Label text="Yakin ingin keluar?"
+                           styleClass="logout-confirm-title"/>
+                    <Label text="Sesi aktif akan diakhiri dan kamu perlu login ulang untuk mengakses dashboard."
+                           styleClass="logout-confirm-text"
+                           wrapText="true" maxWidth="380"/>
+                </VBox>
+                <VBox spacing="10" alignment="CENTER">
+                    <Button text="Ya, Logout" styleClass="btn-danger"
+                            prefWidth="120" onAction="#onConfirmLogout"/>
+                    <Button text="Batal" styleClass="btn-cancel"
+                            prefWidth="120" onAction="#onBatal"/>
+                </VBox>
+            </HBox>
+        </VBox>
+
+    </VBox>
+</HBox>
