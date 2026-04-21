@@ -75,7 +75,7 @@ public class UserChatController {
     @FXML public void onLokasiKedai()     { appendUserBubble("Lokasi Kedai");    showLokasi();       }
 
     // ──────────────────────────────────────────────────────────────
-    //  DETEKSI TOPIK
+    //  INTENS
     // ──────────────────────────────────────────────────────────────
 
     private String detectTopic(String text) {
