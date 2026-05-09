@@ -1,21 +1,19 @@
 package com.rplbo.app.rplboblessedbot;
 
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.stage.Stage;
 
 import java.net.URL;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ResourceBundle;
 
 /**
  * Controller untuk Logout.fxml
- * Menampilkan profil admin, aktivitas terakhir, dan konfirmasi logout.
+ * Baca email admin dan 2 aktivitas terakhir dari DB.
+ * Setelah konfirmasi logout → kembali ke Welcome.fxml
  */
 public class LogoutController implements Initializable {
 
@@ -25,49 +23,84 @@ public class LogoutController implements Initializable {
     @FXML private Label lblActivity2;
     @FXML private Label lblTime2;
 
-    private static final DateTimeFormatter TIME_FMT =
-            DateTimeFormatter.ofPattern("HH.mm");
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        lblAdminEmail.setText("admin@blessbot.id");
-
-        // Contoh aktivitas statis; idealnya diambil dari audit log
-        lblActivity1.setText("Edit menu \"Kopi Susu\"");
-        lblTime1.setText(LocalDateTime.now().format(TIME_FMT));
-
-        lblActivity2.setText("Tambah menu baru");
-        lblTime2.setText(LocalDateTime.now().minusMinutes(24).format(TIME_FMT));
+        loadAdminData();
+        loadAktivitasData();
     }
 
-    // ── Aksi konfirmasi ─────────────────────────────────────────────────────
+    private void loadAdminData() {
+        try {
+            Connection conn = DatabaseHelper.getConnection();
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT email FROM admin LIMIT 1")) {
+                if (rs.next()) {
+                    lblAdminEmail.setText(rs.getString("email"));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Logout: gagal load admin — " + e.getMessage());
+            lblAdminEmail.setText("admin@blessbot.id");
+        }
+    }
+
+    private void loadAktivitasData() {
+        try {
+            Connection conn = DatabaseHelper.getConnection();
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery(
+                         "SELECT keterangan, strftime('%H.%M', waktu) AS jam " +
+                                 "FROM aktivitas_admin " +
+                                 "ORDER BY id DESC LIMIT 2")) {
+
+                if (rs.next()) {
+                    lblActivity1.setText(rs.getString("keterangan"));
+                    lblTime1.setText(rs.getString("jam"));
+                }
+                if (rs.next()) {
+                    lblActivity2.setText(rs.getString("keterangan"));
+                    lblTime2.setText(rs.getString("jam"));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Logout: gagal load aktivitas — " + e.getMessage());
+            lblActivity1.setText("Edit menu \"Kopi Susu\"");
+            lblTime1.setText("--:--");
+            lblActivity2.setText("Tambah menu baru");
+            lblTime2.setText("--:--");
+        }
+    }
+
+    // ── Aksi tombol ──────────────────────────────────────────────
 
     @FXML
     private void onConfirmLogout() {
-        // Hapus sesi / token, lalu arahkan ke halaman Login
-        // SessionManager.getInstance().clear();
-        navigateTo("/fxml/Login.fxml");
+        DatabaseHelper.close();
+        // Kembali ke halaman awal, bukan Login
+        Navigator.goTo(lblAdminEmail, "/com/rplbo/app/rplboblessedbot/Welcome.fxml");
     }
 
     @FXML
     private void onBatal() {
-        navigateTo("/fxml/Dashboard-Admin.fxml");
+        Navigator.goTo(lblAdminEmail, "/com/rplbo/app/rplboblessedbot/Dashboard-Admin.fxml");
     }
 
-    // ── Navigasi Sidebar ────────────────────────────────────────────────────
+    // ── Navigasi Sidebar ──────────────────────────────────────────
 
-    @FXML private void onDashboard() { navigateTo("/fxml/Dashboard-Admin.fxml"); }
-    @FXML private void onEditMenu()  { navigateTo("/fxml/Manajemen-Menu.fxml"); }
-    @FXML private void onLokasi()    { navigateTo("/fxml/Lokasi.fxml"); }
-    @FXML private void onLogout()    { /* halaman ini */ }
-
-    private void navigateTo(String fxmlPath) {
-        try {
-            Parent root  = FXMLLoader.load(getClass().getResource(fxmlPath));
-            Stage  stage = (Stage) lblAdminEmail.getScene().getWindow();
-            stage.setScene(new Scene(root));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    @FXML
+    private void onDashboard() {
+        Navigator.goTo(lblAdminEmail, "/com/rplbo/app/rplboblessedbot/Dashboard-Admin.fxml");
     }
+
+    @FXML
+    private void onEditMenu() {
+        Navigator.goTo(lblAdminEmail, "/com/rplbo/app/rplboblessedbot/Manajemen-Menu.fxml");
+    }
+
+    @FXML
+    private void onLokasi() {
+        Navigator.goTo(lblAdminEmail, "/com/rplbo/app/rplboblessedbot/Lokasi.fxml");
+    }
+
+    @FXML private void onLogout() { /* tetap di sini */ }
 }

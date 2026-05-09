@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.rplbo.app.rplboblessedbot.LoginController"
+      prefWidth="420" prefHeight="460"
+      alignment="CENTER" spacing="24"
+      stylesheets="@blessbot.css"
+      style="-fx-background-color:#FFF8EE;">
+
+    <padding><Insets top="48" right="48" bottom="48" left="48"/></padding>
+
+    <!-- Logo & Judul -->
+    <VBox alignment="CENTER" spacing="8">
+        <Label text="🔐" style="-fx-font-size:44px;"/>
+        <Label text="Login Admin" styleClass="sidebar-logo-text"
+               style="-fx-font-size:22px;"/>
+        <Label text="Masukkan kredensial admin Anda"
+               styleClass="label-muted"
+               style="-fx-font-size:12px;"/>
+    </VBox>
+
+    <!-- Form login -->
+    <VBox styleClass="card" spacing="16" maxWidth="320">
+        <padding><Insets top="24" right="24" bottom="24" left="24"/></padding>
+
+        <!-- Username -->
+        <VBox spacing="6">
+            <Label text="Username" styleClass="label-subtitle"
+                   style="-fx-font-size:13px;"/>
+            <TextField fx:id="txtUsername"
+                       promptText="Masukkan username"
+                       styleClass="chat-text-field"
+                       onAction="#onLogin"/>
+        </VBox>
+
+        <!-- Password -->
+        <VBox spacing="6">
+            <Label text="Password" styleClass="label-subtitle"
+                   style="-fx-font-size:13px;"/>
+            <PasswordField fx:id="txtPassword"
+                           promptText="Masukkan password"
+                           styleClass="chat-text-field"
+                           onAction="#onLogin"/>
+        </VBox>
+
+        <!-- Label error (hidden by default) -->
+        <Label fx:id="lblError"
+               text=""
+               style="-fx-text-fill:#C0392B; -fx-font-size:12px;"
+               wrapText="true"/>
+
+        <!-- Tombol Login -->
+        <Button text="Masuk"
+                styleClass="btn-primary"
+                maxWidth="Infinity"
+                prefHeight="42"
+                style="-fx-font-size:14px;"
+                onAction="#onLogin"/>
+
+    </VBox>
+
+    <!-- Tombol kembali -->
+    <Button text="← Kembali"
+            styleClass="btn-cancel"
+            onAction="#onKembali"/>
+
+</VBox>
