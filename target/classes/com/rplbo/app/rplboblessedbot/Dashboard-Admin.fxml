@@ -12,7 +12,7 @@
       fx:controller="com.rplbo.app.rplboblessedbot.DashboardAdminController"
       prefWidth="900" prefHeight="620"
       stylesheets="@blessbot.css">
-    
+
     <!-- ===== SIDEBAR ===== -->
     <VBox styleClass="sidebar" prefWidth="220" spacing="0">
         <padding><Insets top="24" right="16" bottom="24" left="16"/></padding>
