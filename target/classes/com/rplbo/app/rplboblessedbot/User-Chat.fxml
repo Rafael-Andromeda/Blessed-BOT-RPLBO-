@@ -25,22 +25,31 @@
 
     <!-- ===== TOP BAR ===== -->
     <HBox style="-fx-background-color:#FFF8EE; -fx-padding:14 20 14 20;
-                 -fx-border-color:transparent transparent #E2D0B5 transparent;
-                 -fx-border-width:0 0 1 0;"
+             -fx-border-color:transparent transparent #E2D0B5 transparent;
+             -fx-border-width:0 0 1 0;"
           alignment="CENTER_LEFT" spacing="10">
+
         <Label text="🤖" style="-fx-font-size:28px;"/>
+
         <VBox spacing="1" HBox.hgrow="ALWAYS">
             <Label text="BlessBot" styleClass="sidebar-logo-text"/>
             <Label text="Kedai Kopi Blessed" styleClass="label-muted"
                    style="-fx-font-size:11px;"/>
         </VBox>
+
         <!-- Label ini diupdate controller sesuai topik aktif -->
         <Label fx:id="lblScreenTag"
                text="User-Chat"
                styleClass="badge-active"
                style="-fx-font-size:11px;"/>
-    </HBox>
 
+        <!-- Tombol keluar user -->
+        <Button text="Keluar"
+                styleClass="btn-secondary"
+                onAction="#onLogoutUser"
+                style="-fx-font-size:11px; -fx-padding:4 10 4 10; -fx-background-radius:8;"/>
+
+    </HBox>
     <!-- ===== CHAT SCROLL AREA ===== -->
     <ScrollPane fx:id="chatScrollPane" fitToWidth="true"
                 VBox.vgrow="ALWAYS" styleClass="scroll-pane">
@@ -77,6 +86,7 @@
                             onAction="#onJamOperasional"/>
                     <Button text="Lokasi Kedai"      styleClass="quick-reply-btn"
                             onAction="#onLokasiKedai"/>
+
                 </HBox>
             </VBox>
 

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.rplbo.app.rplboblessedbot.WelcomeController"
+           prefWidth="900" prefHeight="620"
+           stylesheets="@blessbot.css"
+           styleClass="root">
+
+    <VBox alignment="CENTER" spacing="24">
+
+        <VBox alignment="CENTER" spacing="8">
+            <Label text="🤖" style="-fx-font-size:54px;"/>
+            <Label text="BlessBot"
+                   styleClass="welcome-title"
+                   style="-fx-font-size:32px;"/>
+            <Label text="Kedai Kopi Blessed"
+                   styleClass="label-muted"
+                   style="-fx-font-size:15px;"/>
+        </VBox>
+
+        <VBox styleClass="card-white"
+              alignment="CENTER"
+              spacing="18"
+              maxWidth="380">
+
+            <padding>
+                <Insets top="32" right="36" bottom="32" left="36"/>
+            </padding>
+
+            <Label text="Pilih Mode Masuk"
+                   styleClass="label-title"/>
+
+            <Label text="Silakan pilih ingin masuk sebagai user atau admin."
+                   styleClass="label-muted"
+                   wrapText="true"
+                   style="-fx-text-alignment:center;"/>
+
+            <Button fx:id="btnUser"
+                    text="☕  Masuk sebagai User"
+                    styleClass="btn-primary"
+                    maxWidth="Infinity"
+                    onAction="#onMasukUser"/>
+
+            <Button fx:id="btnAdmin"
+                    text="🔐  Masuk sebagai Admin"
+                    styleClass="btn-secondary"
+                    maxWidth="Infinity"
+                    onAction="#onMasukAdmin"/>
+
+        </VBox>
+    </VBox>
+</StackPane>

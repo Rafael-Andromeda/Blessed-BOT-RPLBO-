@@ -1,86 +1,167 @@
 package com.rplbo.app.rplboblessedbot;
 
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.stage.Stage;
 
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
 
 /**
  * Controller untuk Dashboard-Admin.fxml
- * Menampilkan ringkasan: jumlah menu, jam operasional, dan alamat kedai.
+ * Menampilkan:
+ *  - Jumlah menu dari DB (update otomatis)
+ *  - Jam operasional & alamat dari DB
+ *  - Aktivitas login terakhir dari tabel login_log
  */
 public class DashboardAdminController implements Initializable {
 
+    // ── Manajemen Menu ────────────────────────────────────────────
     @FXML private Label lblMenuCount;
+
+    // ── Informasi Kedai ───────────────────────────────────────────
     @FXML private Label lblJamOps;
     @FXML private Label lblAlamat;
 
+    // ── Aktivitas Login (sampai 4 entri) ─────────────────────────
+    @FXML private Label lblLogin1;
+    @FXML private Label lblLogin2;
+    @FXML private Label lblLogin3;
+    @FXML private Label lblLogin4;
+
+    private static final DateTimeFormatter IN_FMT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Idealnya data diambil dari service / repository
-        lblMenuCount.setText("Menu Terdaftar: 10");
-        lblJamOps.setText("08:00 - 22:00");
-        lblAlamat.setText("Jl. Anggrek No.10 Jogja");
+        loadMenuCount();
+        loadInformasiKedai();
+        loadLoginLog();
     }
 
-    // ── Navigasi Sidebar ────────────────────────────────────────────────────
+    // ── Load jumlah menu ──────────────────────────────────────────
 
-    @FXML
-    private void onDashboard() {
-        // Halaman ini – tidak perlu reload
+    private void loadMenuCount() {
+        try {
+            Connection conn = DatabaseHelper.getConnection();
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery(
+                         "SELECT COUNT(*) AS total FROM menu WHERE tersedia = 1")) {
+                if (rs.next()) {
+                    if (lblMenuCount != null)
+                        lblMenuCount.setText(String.valueOf(rs.getInt("total")));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Dashboard: gagal load menu count — " + e.getMessage());
+            if (lblMenuCount != null) lblMenuCount.setText("-");
+        }
     }
+
+    // ── Load informasi kedai ──────────────────────────────────────
+
+    private void loadInformasiKedai() {
+        try {
+            Connection conn = DatabaseHelper.getConnection();
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery(
+                         "SELECT jam_buka, jam_tutup, alamat FROM informasi_kedai LIMIT 1")) {
+                if (rs.next()) {
+                    if (lblJamOps != null)
+                        lblJamOps.setText(rs.getString("jam_buka") + " - " + rs.getString("jam_tutup"));
+                    if (lblAlamat != null)
+                        lblAlamat.setText(rs.getString("alamat"));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Dashboard: gagal load info kedai — " + e.getMessage());
+            if (lblJamOps != null) lblJamOps.setText("08:00 - 22:00");
+            if (lblAlamat != null) lblAlamat.setText("Jl. Anggrek No.10 Jogja");
+        }
+    }
+
+    // ── Load aktivitas login terakhir ─────────────────────────────
+
+    private void loadLoginLog() {
+        Label[] labels = {lblLogin1, lblLogin2, lblLogin3, lblLogin4};
+
+        try {
+            Connection conn = DatabaseHelper.getConnection();
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery(
+                         "SELECT waktu FROM login_log ORDER BY id DESC LIMIT 4")) {
+
+                int idx = 0;
+                while (rs.next() && idx < labels.length) {
+                    if (labels[idx] != null) {
+                        labels[idx].setText("Admin berhasil login\n" + formatLoginTime(rs.getString("waktu")));
+                    }
+                    idx++;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Dashboard: gagal load login log — " + e.getMessage());
+        }
+    }
+
+    /**
+     * Format waktu login menjadi teks yang mudah dibaca.
+     * Contoh: "10:30 hari ini" atau "Jumat, 9 Mei - 12:02"
+     */
+    private String formatLoginTime(String waktuStr) {
+        try {
+            LocalDateTime waktu = LocalDateTime.parse(waktuStr, IN_FMT);
+            LocalDateTime now   = LocalDateTime.now();
+            String jam = waktu.format(DateTimeFormatter.ofPattern("HH:mm"));
+
+            if (waktu.toLocalDate().equals(now.toLocalDate())) {
+                return jam + " hari ini";
+            }
+
+            String[] namaHari  = {"", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"};
+            String[] namaBulan = {"", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+                    "Jul", "Agu", "Sep", "Okt", "Nov", "Des"};
+
+            String hari = namaHari[waktu.getDayOfWeek().getValue()];
+            String tgl  = waktu.getDayOfMonth() + " " + namaBulan[waktu.getMonthValue()];
+            return hari + ", " + tgl + " - " + jam;
+
+        } catch (Exception e) {
+            return waktuStr;
+        }
+    }
+
+    // ── Navigasi Sidebar ──────────────────────────────────────────
+
+    @FXML private void onDashboard() { /* tetap di sini */ }
 
     @FXML
     private void onEditMenu() {
-        navigateTo("/fxml/Manajemen-Menu.fxml");
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Manajemen-Menu.fxml");
     }
 
     @FXML
     private void onLokasi() {
-        navigateTo("/fxml/Lokasi.fxml");
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Lokasi.fxml");
     }
 
     @FXML
     private void onLogout() {
-        navigateTo("/fxml/Logout.fxml");
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Logout.fxml");
     }
-
-    // ── Aksi di dalam Dashboard ─────────────────────────────────────────────
 
     @FXML
     private void onTambahMenu() {
-        navigateTo("/fxml/Manajemen-Menu.fxml");
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Manajemen-Menu.fxml");
     }
 
     @FXML
     private void onEditInfo() {
-        navigateTo("/fxml/Informasi.fxml");
-    }
-
-    // ── Helper navigasi ─────────────────────────────────────────────────────
-
-    private void navigateTo(String fxmlPath) {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource(fxmlPath));
-            Stage  stage = getCurrentStage();
-            if (stage != null) {
-                stage.setScene(new Scene(root));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private Stage getCurrentStage() {
-        if (lblMenuCount.getScene() != null) {
-            return (Stage) lblMenuCount.getScene().getWindow();
-        }
-        return null;
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Informasi.fxml");
     }
 }

@@ -146,8 +146,7 @@
                         <Label fx:id="lblAlamat" text="Jl. Anggrek No.10 Jogja"
                                styleClass="label-body"/>
                         <Region styleClass="divider"/>
-                        <Button text="Edit Info" styleClass="btn-secondary"
-                                maxWidth="Infinity" onAction="#onEditInfo"/>
+
                     </VBox>
                 </HBox>
 

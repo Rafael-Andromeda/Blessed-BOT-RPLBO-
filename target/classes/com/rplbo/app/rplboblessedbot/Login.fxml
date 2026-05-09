@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.rplbo.app.rplboblessedbot.LoginController"
+           prefWidth="900" prefHeight="620"
+           stylesheets="@blessbot.css"
+           styleClass="root">
+
+    <VBox alignment="CENTER" spacing="22">
+
+        <VBox alignment="CENTER" spacing="8">
+            <Label text="🔐" style="-fx-font-size:48px;"/>
+
+            <Label text="Login Admin"
+                   styleClass="label-title"
+                   style="-fx-font-size:28px;"/>
+
+            <Label text="Masuk untuk mengelola data kedai."
+                   styleClass="label-muted"/>
+        </VBox>
+
+        <VBox styleClass="card-white"
+              spacing="16"
+              maxWidth="380">
+
+            <padding>
+                <Insets top="30" right="34" bottom="30" left="34"/>
+            </padding>
+
+            <Label text="Username"
+                   styleClass="label-subtitle"/>
+
+            <TextField fx:id="txtUsername"
+                       promptText="Masukkan username"
+                       styleClass="text-field-normal"/>
+
+            <Label text="Password"
+                   styleClass="label-subtitle"/>
+
+            <PasswordField fx:id="txtPassword"
+                           promptText="Masukkan password"
+                           styleClass="text-field-normal"/>
+
+            <Label fx:id="lblError"
+                   text=""
+                   wrapText="true"
+                   style="-fx-text-fill:#E05555; -fx-font-size:12px;"/>
+
+            <Button text="Login"
+                    styleClass="btn-primary"
+                    maxWidth="Infinity"
+                    onAction="#onLogin"/>
+
+            <Button text="← Kembali"
+                    styleClass="btn-secondary"
+                    maxWidth="Infinity"
+                    onAction="#onKembali"/>
+
+        </VBox>
+    </VBox>
+</StackPane>

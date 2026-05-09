@@ -70,21 +70,37 @@
 
         <!-- Last Activity Card -->
         <VBox styleClass="card" spacing="12">
-            <Label text="Aktifitas terakhir"
-                   styleClass="label-subtitle"/>
+            <Label text="Aktifitas terakhir" styleClass="label-subtitle"/>
             <Region styleClass="divider"/>
-            <HBox>
-                <Label fx:id="lblActivity1" text="Edit menu &quot;Kopi Susu&quot;"
-                       styleClass="label-body" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="lblTime1" text="12.18"
-                       styleClass="label-subtitle"/>
+
+            <HBox alignment="CENTER_LEFT" spacing="8">
+                <Label fx:id="lblActivity1"
+                       text="Edit menu &quot;Kopi Susu&quot;"
+                       styleClass="label-body"
+                       wrapText="false"
+                       maxWidth="320"
+                       HBox.hgrow="ALWAYS"/>
+                <Label fx:id="lblTime1"
+                       text="12.18"
+                       styleClass="label-subtitle"
+                       HBox.hgrow="NEVER"
+                       style="-fx-font-weight:bold;"/>
             </HBox>
+
             <Region styleClass="divider"/>
-            <HBox>
-                <Label fx:id="lblActivity2" text="Tambah menu baru"
-                       styleClass="label-body" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="lblTime2" text="11.54"
-                       styleClass="label-subtitle"/>
+
+            <HBox alignment="CENTER_LEFT" spacing="8">
+                <Label fx:id="lblActivity2"
+                       text="Tambah menu baru"
+                       styleClass="label-body"
+                       wrapText="false"
+                       maxWidth="320"
+                       HBox.hgrow="ALWAYS"/>
+                <Label fx:id="lblTime2"
+                       text="11.54"
+                       styleClass="label-subtitle"
+                       HBox.hgrow="NEVER"
+                       style="-fx-font-weight:bold;"/>
             </HBox>
         </VBox>
 

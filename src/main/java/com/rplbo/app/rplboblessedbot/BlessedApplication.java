@@ -10,22 +10,23 @@ import javafx.stage.Stage;
  * BlessedApplication
  * ------------------
  * Entry point utama aplikasi BlessedBot (JavaFX).
- * Membuka tampilan User-Chat.fxml saat aplikasi dijalankan.
+ * Membuka Welcome.fxml sebagai halaman awal.
+ * User memilih:
+ *   - Masuk sebagai User  → langsung ke User-Chat.fxml
+ *   - Masuk sebagai Admin → ke Login.fxml → Dashboard-Admin.fxml
  */
 public class BlessedApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // Memuat file FXML User-Chat.fxml dari resources
         FXMLLoader loader = new FXMLLoader(
-                getClass().getResource("/com/rplbo/app/rplboblessedbot/User-Chat.fxml")
+                getClass().getResource("/com/rplbo/app/rplboblessedbot/Welcome.fxml")
         );
 
         Parent root = loader.load();
-
         Scene scene = new Scene(root);
 
-        primaryStage.setTitle("BlessedBot - User Chat");
+        primaryStage.setTitle("BlessedBot - Kedai Kopi Blessed");
         primaryStage.setScene(scene);
         primaryStage.setResizable(false);
         primaryStage.show();

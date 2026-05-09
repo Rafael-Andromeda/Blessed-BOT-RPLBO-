@@ -2,7 +2,6 @@
 
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.text.*?>
 <?import javafx.geometry.*?>
 
 <HBox xmlns="http://javafx.com/javafx"
@@ -13,27 +12,37 @@
 
     <!-- ===== SIDEBAR ===== -->
     <VBox styleClass="sidebar" prefWidth="220" spacing="0">
-        <padding><Insets top="24" right="16" bottom="24" left="16"/></padding>
+        <padding>
+            <Insets top="24" right="16" bottom="24" left="16"/>
+        </padding>
 
         <HBox alignment="CENTER_LEFT" spacing="10">
             <Label text="🤖" style="-fx-font-size:24px;"/>
             <Label text="BlessBot" styleClass="sidebar-logo-text"/>
         </HBox>
+
         <Region prefHeight="32"/>
 
         <Button text="🏠  Dashboard" styleClass="sidebar-nav-item"
                 onAction="#onDashboard"/>
+
         <Region prefHeight="8"/>
+
         <Button text="☰  Edit Menu" styleClass="sidebar-nav-item"
                 onAction="#onEditMenu"/>
+
         <Region prefHeight="8"/>
+
         <Button text="📍  Lokasi" styleClass="sidebar-nav-item-active"
                 onAction="#onLokasi"/>
+
         <Region prefHeight="8"/>
+
         <Button text="⏻  Logout" styleClass="sidebar-nav-item"
                 onAction="#onLogout"/>
 
         <Region VBox.vgrow="ALWAYS"/>
+
         <HBox styleClass="sidebar-user-box" spacing="10" alignment="CENTER_LEFT">
             <Label text="👤" style="-fx-font-size:20px;"/>
             <Label text="Admin" styleClass="sidebar-user-label"/>
@@ -57,14 +66,20 @@
                     <Label text="Peta Lokasi" styleClass="label-subtitle"
                            style="-fx-font-size:17px; -fx-font-weight:bold;"/>
 
-                    <!-- Map Placeholder (replace with WebView / MapView) -->
+                    <!-- Map Placeholder -->
                     <StackPane styleClass="map-placeholder" prefHeight="180">
                         <VBox alignment="CENTER" spacing="6">
                             <Label text="📍" style="-fx-font-size:36px;"/>
-                            <Label text="Jl. Anggrek No.10, Jogja"
+
+                            <Label fx:id="lblMapAlamat"
+                                   text="Lokasi Kedai Kopi Blessed"
                                    styleClass="label-body"
                                    style="-fx-font-weight:bold;"/>
-                            <Label text="Google Maps" styleClass="label-accent"/>
+
+                            <Hyperlink text="Google Maps"
+                                       styleClass="label-accent"
+                                       style="-fx-border-color: transparent; -fx-padding: 0; -fx-background-color: transparent; -fx-cursor: hand;"
+                                       onAction="#onBukaGoogleMap"/>
                         </VBox>
                     </StackPane>
 
@@ -79,7 +94,7 @@
                         <VBox styleClass="card" spacing="6"
                               GridPane.columnIndex="0" GridPane.rowIndex="0">
                             <Label text="Alamat" styleClass="card-title"/>
-                            <Label fx:id="lblAlamat" text="Jl. Anggrek No.10, Jogja"
+                            <Label fx:id="lblAlamat" text="Lokasi Kedai Kopi Blessed"
                                    styleClass="card-value" wrapText="true"/>
                         </VBox>
 
@@ -113,6 +128,61 @@
                                    styleClass="card-muted"/>
                         </VBox>
                     </GridPane>
+
+                    <Button text="＋  Edit Peta Lokasi"
+                            styleClass="btn-secondary"
+                            onAction="#onEditPetaLokasi"/>
+                </VBox>
+
+                <!-- Contact Card -->
+                <VBox styleClass="card-white" spacing="16">
+                    <Label text="Kontak" styleClass="label-subtitle"
+                           style="-fx-font-size:17px; -fx-font-weight:bold;"/>
+
+                    <VBox spacing="14">
+
+                        <!-- WhatsApp -->
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <StackPane styleClass="contact-icon-circle">
+                                <Label text="☎" style="-fx-font-size:22px;"/>
+                            </StackPane>
+
+                            <VBox spacing="2">
+                                <Label text="WhatsApp/Telepon" styleClass="contact-label-type"/>
+                                <Label fx:id="lblPhone" text="+62 xxx-xxxx-xxxx"
+                                       styleClass="contact-label-value"/>
+                            </VBox>
+                        </HBox>
+
+                        <!-- Email -->
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <StackPane styleClass="contact-icon-circle">
+                                <Label text="✉" style="-fx-font-size:22px;"/>
+                            </StackPane>
+
+                            <VBox spacing="2">
+                                <Label text="Email" styleClass="contact-label-type"/>
+                                <Label fx:id="lblEmail" text="kedai@blessbot.id"
+                                       styleClass="contact-label-value"/>
+                            </VBox>
+                        </HBox>
+
+                        <!-- Instagram -->
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <StackPane styleClass="contact-icon-circle">
+                                <Label text="📸" style="-fx-font-size:22px; -fx-font-weight:bold;"/>
+                            </StackPane>
+
+                            <VBox spacing="2">
+                                <Label text="Instagram" styleClass="contact-label-type"/>
+                                <Label fx:id="lblInstagram" text="\@kedaikopi"
+                                       styleClass="contact-label-value"/>                           </VBox>
+                        </HBox>
+                    </VBox>
+
+                    <Button text="＋  Edit Informasi"
+                            styleClass="btn-secondary"
+                            onAction="#onEditInformasi"/>
                 </VBox>
 
             </VBox>
