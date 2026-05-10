@@ -202,9 +202,10 @@ public class UserChatController {
         appendBotMessage("Berikut informasi menu yang tersedia:");
 
         VBox card = makeCard();
-        card.setMaxWidth(430);
+        card.setMaxWidth(520);
 
-        HBox tabs = new HBox(8);
+        HBox tabs = new HBox(4);
+        tabs.setMaxWidth(430);
         VBox menuList = new VBox(8);
 
         List<String> kategoriList = new ArrayList<>(menuByKategori.keySet());
@@ -257,6 +258,8 @@ public class UserChatController {
             name.getStyleClass().add("menu-item-name");
             Label desc = new Label(item[1]);
             desc.getStyleClass().add("menu-item-desc");
+            desc.setWrapText(true);
+            desc.setMaxWidth(200);
             info.getChildren().addAll(name, desc);
 
             Label price = new Label(item[2]);
@@ -622,6 +625,8 @@ public class UserChatController {
     private Button makeTabBtn(String text, boolean active) {
         Button btn = new Button(text);
         btn.getStyleClass().add(active ? "tab-btn-active" : "tab-btn");
+        btn.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(btn, Priority.ALWAYS);
         return btn;
     }
 
