@@ -6,6 +6,8 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
 
@@ -20,9 +22,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * UserChatController — baca semua data dari blessbot.db
- */
 public class UserChatController {
 
     @FXML private ScrollPane chatScrollPane;
@@ -30,18 +29,14 @@ public class UserChatController {
     @FXML private TextField  inputField;
     @FXML private Label      lblScreenTag;
 
-    // Cache data dari DB (dimuat sekali saat init)
     private Map<String, List<String[]>> menuByKategori = new LinkedHashMap<>();
     private List<String[]> fasilitasList = new ArrayList<>();
     private String jamBuka = "08:00", jamTutup = "22:00", hariOps = "Setiap Hari";
     private String namaKedai = "Kedai Kopi Blessed", alamat = "", mapsUrl = "";
 
-    // ── Init ─────────────────────────────────────────────────────
-
     @FXML
     public void initialize() {
         loadAllDataFromDb();
-        // Tampilkan rekomendasi menu hari ini secara otomatis saat chat dibuka
         javafx.application.Platform.runLater(this::showRekomendasiMenuHariIni);
     }
 
@@ -49,10 +44,9 @@ public class UserChatController {
         try {
             Connection conn = DatabaseHelper.getConnection();
 
-            // Load menu per kategori
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
-                         "SELECT k.nama_kategori, m.nama, m.deskripsi, m.harga " +
+                         "SELECT k.nama_kategori, m.nama, m.deskripsi, m.harga, m.gambar_url " +
                                  "FROM menu m JOIN kategori_menu k ON m.kategori_id = k.id " +
                                  "WHERE m.tersedia = 1 ORDER BY k.urutan, m.id")) {
                 while (rs.next()) {
@@ -60,12 +54,12 @@ public class UserChatController {
                     menuByKategori.computeIfAbsent(kat, x -> new ArrayList<>()).add(new String[]{
                             rs.getString("nama"),
                             rs.getString("deskripsi"),
-                            "Rp" + String.format("%,.0f", (double) rs.getInt("harga")).replace(",", ".")
+                            "Rp" + String.format("%,.0f", (double) rs.getInt("harga")).replace(",", "."),
+                            rs.getString("gambar_url")
                     });
                 }
             }
 
-            // Load fasilitas
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
                          "SELECT icon, nama FROM fasilitas WHERE tersedia = 1")) {
@@ -74,7 +68,6 @@ public class UserChatController {
                 }
             }
 
-            // Load info kedai
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
                          "SELECT nama_kedai, jam_buka, jam_tutup, hari_operasi, alamat, maps_url " +
@@ -99,19 +92,19 @@ public class UserChatController {
     private void loadFallbackData() {
         menuByKategori.clear();
         menuByKategori.put("Kopi Hitam", List.of(
-                new String[]{"Americano", "Espresso + air panas", "Rp18.000"},
-                new String[]{"Long Black", "Espresso kuat & bold", "Rp20.000"},
-                new String[]{"V60", "Pour-over filter coffee", "Rp22.000"}
+                new String[]{"Americano", "Espresso + air panas", "Rp18.000", null},
+                new String[]{"Long Black", "Espresso kuat & bold", "Rp20.000", null},
+                new String[]{"V60", "Pour-over filter coffee", "Rp22.000", null}
         ));
         menuByKategori.put("Kopi Susu", List.of(
-                new String[]{"Latte", "Espresso + susu lembut", "Rp25.000"},
-                new String[]{"Cappuccino", "Espresso + foam tebal", "Rp23.000"},
-                new String[]{"Flat White", "Double shot + microfoam", "Rp26.000"}
+                new String[]{"Latte", "Espresso + susu lembut", "Rp25.000", null},
+                new String[]{"Cappuccino", "Espresso + foam tebal", "Rp23.000", null},
+                new String[]{"Flat White", "Double shot + microfoam", "Rp26.000", null}
         ));
         menuByKategori.put("Kopi Gula", List.of(
-                new String[]{"Kopi Gula Aren", "Espresso + gula aren", "Rp24.000"},
-                new String[]{"Es Kopi Susu", "Kopi susu dingin", "Rp22.000"},
-                new String[]{"Dalgona Coffee", "Kopi kocok creamy", "Rp27.000"}
+                new String[]{"Kopi Gula Aren", "Espresso + gula aren", "Rp24.000", null},
+                new String[]{"Es Kopi Susu", "Kopi susu dingin", "Rp22.000", null},
+                new String[]{"Dalgona Coffee", "Kopi kocok creamy", "Rp27.000", null}
         ));
         fasilitasList = List.of(
                 new String[]{"📶", "Free Wi-Fi"},
@@ -122,8 +115,6 @@ public class UserChatController {
         mapsUrl = "https://maps.google.com/?q=Kedai+Kopi+Blessed+Jogja";
         alamat = "Jl. Anggrek No.10, Jogja";
     }
-
-    // ── Kirim pesan ───────────────────────────────────────────────
 
     @FXML
     private void onSend() {
@@ -138,7 +129,6 @@ public class UserChatController {
         delay.setOnFinished(e -> routeToTopic(topic));
         delay.play();
 
-        // Log ke chat_log DB
         logChatToDb(text, topic, "Bot membalas topik: " + topic);
     }
 
@@ -153,10 +143,7 @@ public class UserChatController {
         } catch (Exception e) {
             System.err.println("Gagal log chat: " + e.getMessage());
         }
-
     }
-
-    // ── Quick-reply buttons ───────────────────────────────────────
 
     @FXML public void onMenuDanHarga()   { appendUserBubble("Menu & Harga");    showMenuDanHarga(); }
     @FXML public void onFasilitas()      { appendUserBubble("Fasilitas");       showFasilitas();    }
@@ -167,8 +154,6 @@ public class UserChatController {
     private void onLogoutUser() {
         Navigator.goTo(inputField, "/com/rplbo/app/rplboblessedbot/Welcome.fxml");
     }
-
-    // ── Deteksi topik ─────────────────────────────────────────────
 
     private String detectTopic(String text) {
         if (text.matches(".*\\b(rekomendasi|rekomen|saran|suggest|pilihan hari|menu hari|hari ini).*"))
@@ -194,8 +179,6 @@ public class UserChatController {
             default            -> showUnknown();
         }
     }
-
-    // ── Topik: Menu & Harga ───────────────────────────────────────
 
     private void showMenuDanHarga() {
         updateScreenTag("User-Chat-Menu-dan-Harga");
@@ -232,10 +215,6 @@ public class UserChatController {
 
         card.getChildren().addAll(tabs, menuList);
         appendBotNode(card);
-
-        appendFollowUp("Ada yang bisa dibantu lagi?",
-                new String[]{"Lihat Fasilitas", "fasilitas"},
-                new String[]{"Lokasi Kedai",    "lokasi"});
     }
 
     private void populateMenuList(VBox container, List<String[]> items) {
@@ -246,11 +225,30 @@ public class UserChatController {
             row.getStyleClass().add("menu-item-row");
             row.setAlignment(Pos.CENTER_LEFT);
 
+            // Gambar dari URL, fallback ke emoji
             StackPane icon = new StackPane();
             icon.getStyleClass().add("image-placeholder");
-            Label emoji = new Label("☕");
-            emoji.setStyle("-fx-font-size:20px;");
-            icon.getChildren().add(emoji);
+            icon.setPrefSize(56, 56);
+            icon.setMinSize(56, 56);
+            icon.setMaxSize(56, 56);
+
+            String imgUrl = (item.length > 3 && item[3] != null) ? item[3] : null;
+            if (imgUrl != null && !imgUrl.isBlank()) {
+                try {
+                    ImageView iv = new ImageView(new Image(imgUrl, 56, 56, true, true, true));
+                    iv.setFitWidth(56);
+                    iv.setFitHeight(56);
+                    icon.getChildren().add(iv);
+                } catch (Exception e) {
+                    Label emoji = new Label("☕");
+                    emoji.setStyle("-fx-font-size:20px;");
+                    icon.getChildren().add(emoji);
+                }
+            } else {
+                Label emoji = new Label("☕");
+                emoji.setStyle("-fx-font-size:20px;");
+                icon.getChildren().add(emoji);
+            }
 
             VBox info = new VBox(2);
             HBox.setHgrow(info, Priority.ALWAYS);
@@ -270,11 +268,7 @@ public class UserChatController {
         }
     }
 
-    // ── Topik: Rekomendasi Menu Hari Ini ─────────────────────────────────────
-
-    /** Dipanggil otomatis saat chat dibuka & saat user bertanya soal rekomendasi. */
     private void showRekomendasiMenuHariIni() {
-        // Tentukan nama hari dalam Bahasa Indonesia dari hari ini
         DayOfWeek dow = LocalDate.now().getDayOfWeek();
         String hariIni = switch (dow) {
             case MONDAY    -> "Senin";
@@ -288,9 +282,7 @@ public class UserChatController {
 
         updateScreenTag("User-Chat-Rekomendasi-Menu");
 
-        // Query ke DB
-        String namaMenu = null, deskripsi = null, catatan = null;
-        String hargaStr = null;
+        String namaMenu = null, deskripsi = null, catatan = null, hargaStr = null;
         try {
             Connection conn = DatabaseHelper.getConnection();
             try (PreparedStatement ps = conn.prepareStatement(
@@ -312,27 +304,20 @@ public class UserChatController {
             System.err.println("showRekomendasiMenuHariIni: gagal query — " + e.getMessage());
         }
 
-        // Pesan intro bot
         appendBotMessage("☀ Rekomendasi Menu Hari Ini (" + hariIni + ")");
 
         if (namaMenu == null) {
-            // Belum ada rekomendasi untuk hari ini
             appendBotMessage("Belum ada rekomendasi menu untuk hari " + hariIni + " ini. "
                     + "Silakan tanyakan menu lainnya!");
-            appendFollowUp("Mau lihat apa?",
-                    new String[]{"Menu & Harga",   "menu"},
-                    new String[]{"Fasilitas",       "fasilitas"});
             return;
         }
 
-        // ── Bubble card rekomendasi ──────────────────────────────────────────
         VBox card = makeCard();
         card.setMaxWidth(370);
         card.setStyle("-fx-background-color:#FFF3E0; -fx-background-radius:14;"
                 + "-fx-border-color:#C8956C; -fx-border-radius:14; -fx-border-width:1.5;"
                 + "-fx-padding:14 16 14 16;");
 
-        // Badge "Rekomendasi Hari Ini"
         HBox badgeRow = new HBox(6);
         badgeRow.setAlignment(Pos.CENTER_LEFT);
         Label badge = new Label("⭐  Pilihan Hari " + hariIni);
@@ -341,7 +326,6 @@ public class UserChatController {
                 + "-fx-font-size:11px; -fx-font-weight:bold;");
         badgeRow.getChildren().add(badge);
 
-        // Nama menu + harga
         HBox namaHargaRow = new HBox();
         namaHargaRow.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(namaHargaRow, Priority.ALWAYS);
@@ -356,7 +340,6 @@ public class UserChatController {
 
         namaHargaRow.getChildren().addAll(lblNama, lblHarga);
 
-        // Deskripsi
         Label lblDesc = new Label(deskripsi != null ? deskripsi : "");
         lblDesc.getStyleClass().add("menu-item-desc");
         lblDesc.setWrapText(true);
@@ -364,7 +347,6 @@ public class UserChatController {
 
         card.getChildren().addAll(badgeRow, namaHargaRow, lblDesc);
 
-        // Catatan admin (opsional, tampil hanya jika tidak null)
         if (catatan != null && !catatan.isBlank()) {
             Region divider = new Region();
             divider.setStyle("-fx-background-color:#E2C4A0; -fx-pref-height:1;");
@@ -382,21 +364,13 @@ public class UserChatController {
         }
 
         appendBotNode(card);
-
-        appendFollowUp("Ada yang bisa dibantu lagi?",
-                new String[]{"Lihat Semua Menu",  "menu"},
-                new String[]{"Lokasi Kedai",       "lokasi"},
-                new String[]{"Jam Operasional",    "jam"});
     }
 
-    /** Quick-reply button di FXML untuk rekomendasi menu. */
     @FXML
     public void onRekomendasiMenu() {
         appendUserBubble("Rekomendasi Menu");
         showRekomendasiMenuHariIni();
     }
-
-
 
     private void showFasilitas() {
         updateScreenTag("User-Chat-Fasilitas");
@@ -434,12 +408,7 @@ public class UserChatController {
         grid.getColumnConstraints().addAll(cc, cc2);
 
         appendBotNode(grid);
-        appendFollowUp("Ada yang bisa dibantu lagi?",
-                new String[]{"Lokasi Kedai",    "lokasi"},
-                new String[]{"Jam Operasional", "jam"});
     }
-
-    // ── Topik: Jam Operasional ────────────────────────────────────
 
     private void showJamOperasional() {
         updateScreenTag("User-Chat-Jam-Operasional");
@@ -473,11 +442,7 @@ public class UserChatController {
         card.getChildren().addAll(header, divider, jamRow);
 
         appendBotNode(card);
-        appendFollowUp("Ada yang bisa dibantu lagi?",
-                new String[]{"Lokasi Kedai", "lokasi"});
     }
-
-    // ── Topik: Lokasi ─────────────────────────────────────────────
 
     private void showLokasi() {
         updateScreenTag("User-Chat-Lokasi");
@@ -526,25 +491,12 @@ public class UserChatController {
 
         card.getChildren().addAll(alamatRow, mapBox, btnMaps);
         appendBotNode(card);
-
-        appendFollowUp("Ada yang bisa dibantu lagi?",
-                new String[]{"Jam Operasional", "jam"},
-                new String[]{"Menu & Harga",    "menu"});
     }
-
-    // ── Topik tidak dikenali ──────────────────────────────────────
 
     private void showUnknown() {
         appendBotMessage("Maaf, saya belum memahami pertanyaan itu. "
                 + "Coba tanyakan tentang Menu & Harga, Fasilitas, Jam Operasional, atau Lokasi kami ya!");
-        appendFollowUp("Pilih topik:",
-                new String[]{"Menu & Harga",   "menu"},
-                new String[]{"Fasilitas",       "fasilitas"},
-                new String[]{"Jam Operasional", "jam"},
-                new String[]{"Lokasi Kedai",    "lokasi"});
     }
-
-    // ── Helper: Bubble & Node ─────────────────────────────────────
 
     private void appendUserBubble(String text) {
         HBox wrap = new HBox();
@@ -585,32 +537,6 @@ public class UserChatController {
         chatContainer.getChildren().add(wrap);
         scrollToBottom();
     }
-
-    private void appendFollowUp(String label, String[]... options) {
-        HBox wrap = new HBox();
-        wrap.setAlignment(Pos.CENTER_RIGHT);
-        VBox vbox = new VBox(8);
-        vbox.setAlignment(Pos.CENTER_RIGHT);
-        Label lbl = new Label(label);
-        lbl.getStyleClass().add("label-subtitle");
-        lbl.setStyle("-fx-font-size:14px;");
-        vbox.getChildren().add(lbl);
-        for (String[] opt : options) {
-            Button btn = new Button(opt[0]);
-            btn.getStyleClass().add("quick-reply-btn");
-            String topic = opt[1];
-            btn.setOnAction(e -> {
-                appendUserBubble(opt[0]);
-                routeToTopic(topic);
-            });
-            vbox.getChildren().add(btn);
-        }
-        wrap.getChildren().add(vbox);
-        chatContainer.getChildren().add(wrap);
-        scrollToBottom();
-    }
-
-    // ── Helper: UI ────────────────────────────────────────────────
 
     private void updateScreenTag(String screenName) {
         if (lblScreenTag != null) lblScreenTag.setText(screenName);
