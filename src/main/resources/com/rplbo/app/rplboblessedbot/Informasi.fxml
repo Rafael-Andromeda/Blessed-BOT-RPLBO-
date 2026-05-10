@@ -27,6 +27,9 @@
         <Button text="☰  Edit Menu" styleClass="sidebar-nav-item"
                 onAction="#onEditMenu"/>
         <Region prefHeight="8"/>
+        <Button text="⭐  Rekomendasi Menu" styleClass="sidebar-nav-item"
+                onAction="#onRekomendasiMenu"/>
+        <Region prefHeight="8"/>
         <Button text="📍  Lokasi" styleClass="sidebar-nav-item-active"
                 onAction="#onLokasi"/>
         <Region prefHeight="8"/>

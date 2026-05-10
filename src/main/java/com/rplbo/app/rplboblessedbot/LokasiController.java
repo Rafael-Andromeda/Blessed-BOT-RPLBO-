@@ -280,6 +280,11 @@ public class LokasiController implements Initializable {
     }
 
     @FXML
+    private void onRekomendasiMenu() {
+        Navigator.goTo(lblAlamat, "/com/rplbo/app/rplboblessedbot/Kelola-Rekomendasi-Menu.fxml");
+    }
+
+    @FXML
     private void onLokasi() {
         // Tetap di halaman Lokasi
     }

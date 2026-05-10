@@ -78,6 +78,8 @@
 
                 <!-- Quick-reply chips di welcome -->
                 <HBox spacing="8" alignment="CENTER">
+                    <Button text="☀ Rekomendasi Menu" styleClass="quick-reply-btn"
+                            onAction="#onRekomendasiMenu"/>
                     <Button text="Menu &amp; Harga"  styleClass="quick-reply-btn"
                             onAction="#onMenuDanHarga"/>
                     <Button text="Fasilitas"         styleClass="quick-reply-btn"

@@ -133,6 +133,11 @@ public class InformasiController implements Initializable {
     }
 
     @FXML
+    private void onRekomendasiMenu() {
+        Navigator.goTo(lblPhone, "/com/rplbo/app/rplboblessedbot/Kelola-Rekomendasi-Menu.fxml");
+    }
+
+    @FXML
     private void onLokasi() {
         Navigator.goTo(lblPhone, "/com/rplbo/app/rplboblessedbot/Lokasi.fxml");
     }

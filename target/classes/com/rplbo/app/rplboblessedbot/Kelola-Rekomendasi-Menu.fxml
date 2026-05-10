@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<!--
+    Kelola-Rekomendasi-Menu.fxml
+    Controller : com.rplbo.app.rplboblessedbot.KelolaMekRekomendasiMenuController
+    Fungsi     : Admin dapat mengatur rekomendasi menu untuk tiap hari (Senin–Minggu).
+                 Mendukung Read, Update, Delete terhadap tabel rekomendasi_menu di SQLite.
+-->
+
+<HBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.rplbo.app.rplboblessedbot.KelolaRekomendasiMenuController"
+      prefWidth="900" prefHeight="620"
+      stylesheets="@blessbot.css">
+
+    <!-- ===== SIDEBAR ===== -->
+    <VBox styleClass="sidebar" prefWidth="220" spacing="0">
+        <padding>
+            <Insets top="24" right="16" bottom="24" left="16"/>
+        </padding>
+
+        <!-- Logo -->
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="🤖" style="-fx-font-size:24px;"/>
+            <Label text="BlessBot" styleClass="sidebar-logo-text"/>
+        </HBox>
+
+        <Region prefHeight="32"/>
+
+        <!-- Nav Items -->
+        <Button text="🏠  Dashboard"
+                styleClass="sidebar-nav-item"
+                onAction="#onDashboard"/>
+        <Region prefHeight="8"/>
+        <Button text="☰  Edit Menu"
+                styleClass="sidebar-nav-item"
+                onAction="#onEditMenu"/>
+        <Region prefHeight="8"/>
+        <Button text="⭐  Rekomendasi Menu"
+                styleClass="sidebar-nav-item-active"
+                onAction="#onRekomendasiMenu"/>
+        <Region prefHeight="8"/>
+        <Button text="📍  Lokasi"
+                styleClass="sidebar-nav-item"
+                onAction="#onLokasi"/>
+        <Region prefHeight="8"/>
+        <Button text="⏻  Logout"
+                styleClass="sidebar-nav-item"
+                onAction="#onLogout"/>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <!-- User Box -->
+        <HBox styleClass="sidebar-user-box" spacing="10" alignment="CENTER_LEFT">
+            <Label text="👤" style="-fx-font-size:20px;"/>
+            <Label text="Admin" styleClass="sidebar-user-label"/>
+        </HBox>
+    </VBox>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <VBox HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" styleClass="content-area" spacing="20">
+
+        <!-- Top Bar -->
+        <HBox styleClass="topbar" alignment="CENTER_LEFT">
+            <Label text="Kelola Rekomendasi Menu"
+                   styleClass="topbar-title"
+                   HBox.hgrow="ALWAYS"/>
+            <Label text="👤" style="-fx-font-size:22px; -fx-text-fill:#5C3D2E;"/>
+        </HBox>
+
+        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="scroll-pane">
+            <VBox spacing="16" style="-fx-padding: 4 0 16 0;">
+
+                <!-- ── Info Header ── -->
+                <Label text="Atur rekomendasi menu untuk setiap hari dalam seminggu. Menu yang dipilih akan ditampilkan kepada pengguna di halaman chat."
+                       styleClass="label-muted"
+                       wrapText="true"/>
+
+                <!-- ── Panel Pilih/Edit Rekomendasi (Form atas) ── -->
+                <VBox styleClass="card-white" spacing="14">
+                    <Label text="✏  Edit Rekomendasi" styleClass="label-title"
+                           style="-fx-font-size:16px;"/>
+                    <Region styleClass="divider"/>
+
+                    <HBox spacing="16" alignment="CENTER_LEFT">
+                        <!-- Pilih Hari -->
+                        <VBox spacing="6" HBox.hgrow="ALWAYS">
+                            <Label text="Hari" styleClass="card-title"/>
+                            <ComboBox fx:id="cbHari"
+                                      promptText="-- Pilih Hari --"
+                                      maxWidth="Infinity"
+                                      styleClass="text-field-normal"
+                                      style="-fx-pref-width:200px;"/>
+                        </VBox>
+
+                        <!-- Pilih Menu -->
+                        <VBox spacing="6" HBox.hgrow="ALWAYS">
+                            <Label text="Menu" styleClass="card-title"/>
+                            <ComboBox fx:id="cbMenu"
+                                      promptText="-- Pilih Menu --"
+                                      maxWidth="Infinity"
+                                      styleClass="text-field-normal"
+                                      style="-fx-pref-width:280px;"/>
+                        </VBox>
+
+                        <!-- Catatan / Keterangan -->
+                        <VBox spacing="6" HBox.hgrow="ALWAYS">
+                            <Label text="Catatan (opsional)" styleClass="card-title"/>
+                            <TextField fx:id="tfCatatan"
+                                       promptText="Mis: Spesial hari ini!"
+                                       styleClass="text-field-normal"
+                                       maxWidth="Infinity"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- Tombol Aksi Form -->
+                    <HBox spacing="10" alignment="CENTER_RIGHT">
+                        <Button fx:id="btnBatal"
+                                text="Batal"
+                                styleClass="btn-secondary"
+                                onAction="#onBatal"/>
+                        <Button fx:id="btnSimpan"
+                                text="💾  Simpan Rekomendasi"
+                                styleClass="btn-primary"
+                                onAction="#onSimpan"/>
+                    </HBox>
+
+                    <!-- Label status operasi -->
+                    <Label fx:id="lblStatus"
+                           text=""
+                           styleClass="label-muted"
+                           wrapText="true"/>
+                </VBox>
+
+                <!-- ── Tabel Rekomendasi Per Hari (Senin–Minggu) ── -->
+                <VBox styleClass="card-white" spacing="12">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="📅  Jadwal Rekomendasi Mingguan"
+                               styleClass="label-title"
+                               style="-fx-font-size:16px;"
+                               HBox.hgrow="ALWAYS"/>
+                        <Button text="🔄  Refresh"
+                                styleClass="btn-secondary"
+                                style="-fx-font-size:12px; -fx-padding:6 14 6 14;"
+                                onAction="#onRefresh"/>
+                    </HBox>
+                    <Region styleClass="divider"/>
+
+                    <TableView fx:id="rekomendasiTable"
+                               styleClass="menu-table"
+                               VBox.vgrow="ALWAYS"
+                               minHeight="280">
+                        <columns>
+                            <!-- Kolom Hari -->
+                            <TableColumn fx:id="colHari"
+                                         text="Hari"
+                                         prefWidth="110"/>
+
+                            <!-- Kolom Menu -->
+                            <TableColumn fx:id="colNamaMenu"
+                                         text="Menu Rekomendasi"
+                                         prefWidth="220"/>
+
+                            <!-- Kolom Harga -->
+                            <TableColumn fx:id="colHarga"
+                                         text="Harga"
+                                         prefWidth="120"/>
+
+                            <!-- Kolom Catatan -->
+                            <TableColumn fx:id="colCatatan"
+                                         text="Catatan"
+                                         prefWidth="160"/>
+
+                            <!-- Kolom Aksi -->
+                            <TableColumn fx:id="colAksi"
+                                         text="Aksi"
+                                         prefWidth="130"/>
+                        </columns>
+                        <placeholder>
+                            <Label text="Belum ada data rekomendasi."
+                                   styleClass="label-muted"/>
+                        </placeholder>
+                    </TableView>
+                </VBox>
+
+            </VBox>
+        </ScrollPane>
+    </VBox>
+</HBox>

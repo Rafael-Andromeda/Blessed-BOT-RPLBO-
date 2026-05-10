@@ -10,8 +10,11 @@ import javafx.scene.layout.*;
 import javafx.util.Duration;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,6 +41,8 @@ public class UserChatController {
     @FXML
     public void initialize() {
         loadAllDataFromDb();
+        // Tampilkan rekomendasi menu hari ini secara otomatis saat chat dibuka
+        javafx.application.Platform.runLater(this::showRekomendasiMenuHariIni);
     }
 
     private void loadAllDataFromDb() {
@@ -166,6 +171,8 @@ public class UserChatController {
     // ── Deteksi topik ─────────────────────────────────────────────
 
     private String detectTopic(String text) {
+        if (text.matches(".*\\b(rekomendasi|rekomen|saran|suggest|pilihan hari|menu hari|hari ini).*"))
+            return "rekomendasi";
         if (text.matches(".*\\b(menu|harga|kopi|minum|makan|pesan|beli|ada apa|tersedia).*"))
             return "menu";
         if (text.matches(".*\\b(fasilitas|wifi|wi-fi|parkir|ruang|outdoor|private).*"))
@@ -179,11 +186,12 @@ public class UserChatController {
 
     private void routeToTopic(String topic) {
         switch (topic) {
-            case "menu"      -> showMenuDanHarga();
-            case "fasilitas" -> showFasilitas();
-            case "jam"       -> showJamOperasional();
-            case "lokasi"    -> showLokasi();
-            default          -> showUnknown();
+            case "rekomendasi" -> showRekomendasiMenuHariIni();
+            case "menu"        -> showMenuDanHarga();
+            case "fasilitas"   -> showFasilitas();
+            case "jam"         -> showJamOperasional();
+            case "lokasi"      -> showLokasi();
+            default            -> showUnknown();
         }
     }
 
@@ -259,7 +267,133 @@ public class UserChatController {
         }
     }
 
-    // ── Topik: Fasilitas ──────────────────────────────────────────
+    // ── Topik: Rekomendasi Menu Hari Ini ─────────────────────────────────────
+
+    /** Dipanggil otomatis saat chat dibuka & saat user bertanya soal rekomendasi. */
+    private void showRekomendasiMenuHariIni() {
+        // Tentukan nama hari dalam Bahasa Indonesia dari hari ini
+        DayOfWeek dow = LocalDate.now().getDayOfWeek();
+        String hariIni = switch (dow) {
+            case MONDAY    -> "Senin";
+            case TUESDAY   -> "Selasa";
+            case WEDNESDAY -> "Rabu";
+            case THURSDAY  -> "Kamis";
+            case FRIDAY    -> "Jumat";
+            case SATURDAY  -> "Sabtu";
+            case SUNDAY    -> "Minggu";
+        };
+
+        updateScreenTag("User-Chat-Rekomendasi-Menu");
+
+        // Query ke DB
+        String namaMenu = null, deskripsi = null, catatan = null;
+        String hargaStr = null;
+        try {
+            Connection conn = DatabaseHelper.getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT m.nama, m.deskripsi, m.harga, r.catatan " +
+                            "FROM rekomendasi_menu r " +
+                            "JOIN menu m ON r.menu_id = m.id " +
+                            "WHERE r.hari = ?")) {
+                ps.setString(1, hariIni);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    namaMenu  = rs.getString("nama");
+                    deskripsi = rs.getString("deskripsi");
+                    catatan   = rs.getString("catatan");
+                    hargaStr  = "Rp" + String.format("%,.0f", (double) rs.getInt("harga"))
+                            .replace(",", ".");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("showRekomendasiMenuHariIni: gagal query — " + e.getMessage());
+        }
+
+        // Pesan intro bot
+        appendBotMessage("☀ Rekomendasi Menu Hari Ini (" + hariIni + ")");
+
+        if (namaMenu == null) {
+            // Belum ada rekomendasi untuk hari ini
+            appendBotMessage("Belum ada rekomendasi menu untuk hari " + hariIni + " ini. "
+                    + "Silakan tanyakan menu lainnya!");
+            appendFollowUp("Mau lihat apa?",
+                    new String[]{"Menu & Harga",   "menu"},
+                    new String[]{"Fasilitas",       "fasilitas"});
+            return;
+        }
+
+        // ── Bubble card rekomendasi ──────────────────────────────────────────
+        VBox card = makeCard();
+        card.setMaxWidth(370);
+        card.setStyle("-fx-background-color:#FFF3E0; -fx-background-radius:14;"
+                + "-fx-border-color:#C8956C; -fx-border-radius:14; -fx-border-width:1.5;"
+                + "-fx-padding:14 16 14 16;");
+
+        // Badge "Rekomendasi Hari Ini"
+        HBox badgeRow = new HBox(6);
+        badgeRow.setAlignment(Pos.CENTER_LEFT);
+        Label badge = new Label("⭐  Pilihan Hari " + hariIni);
+        badge.setStyle("-fx-background-color:#C8956C; -fx-text-fill:white;"
+                + "-fx-background-radius:20; -fx-padding:3 10 3 10;"
+                + "-fx-font-size:11px; -fx-font-weight:bold;");
+        badgeRow.getChildren().add(badge);
+
+        // Nama menu + harga
+        HBox namaHargaRow = new HBox();
+        namaHargaRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(namaHargaRow, Priority.ALWAYS);
+
+        Label lblNama = new Label("☕  " + namaMenu);
+        lblNama.setStyle("-fx-font-size:17px; -fx-font-weight:bold; -fx-text-fill:#3B2414;");
+        HBox.setHgrow(lblNama, Priority.ALWAYS);
+
+        Label lblHarga = new Label(hargaStr);
+        lblHarga.getStyleClass().add("menu-item-price");
+        lblHarga.setStyle("-fx-font-size:15px; -fx-font-weight:bold; -fx-text-fill:#C8956C;");
+
+        namaHargaRow.getChildren().addAll(lblNama, lblHarga);
+
+        // Deskripsi
+        Label lblDesc = new Label(deskripsi != null ? deskripsi : "");
+        lblDesc.getStyleClass().add("menu-item-desc");
+        lblDesc.setWrapText(true);
+        lblDesc.setStyle("-fx-font-size:13px; -fx-text-fill:#7A5C3A;");
+
+        card.getChildren().addAll(badgeRow, namaHargaRow, lblDesc);
+
+        // Catatan admin (opsional, tampil hanya jika tidak null)
+        if (catatan != null && !catatan.isBlank()) {
+            Region divider = new Region();
+            divider.setStyle("-fx-background-color:#E2C4A0; -fx-pref-height:1;");
+
+            HBox catatanRow = new HBox(6);
+            catatanRow.setAlignment(Pos.CENTER_LEFT);
+            Label iconCatatan = new Label("💬");
+            iconCatatan.setStyle("-fx-font-size:13px;");
+            Label lblCatatan = new Label(catatan);
+            lblCatatan.setStyle("-fx-font-size:12px; -fx-text-fill:#8B6347; -fx-font-style:italic;");
+            lblCatatan.setWrapText(true);
+            catatanRow.getChildren().addAll(iconCatatan, lblCatatan);
+
+            card.getChildren().addAll(divider, catatanRow);
+        }
+
+        appendBotNode(card);
+
+        appendFollowUp("Ada yang bisa dibantu lagi?",
+                new String[]{"Lihat Semua Menu",  "menu"},
+                new String[]{"Lokasi Kedai",       "lokasi"},
+                new String[]{"Jam Operasional",    "jam"});
+    }
+
+    /** Quick-reply button di FXML untuk rekomendasi menu. */
+    @FXML
+    public void onRekomendasiMenu() {
+        appendUserBubble("Rekomendasi Menu");
+        showRekomendasiMenuHariIni();
+    }
+
+
 
     private void showFasilitas() {
         updateScreenTag("User-Chat-Fasilitas");

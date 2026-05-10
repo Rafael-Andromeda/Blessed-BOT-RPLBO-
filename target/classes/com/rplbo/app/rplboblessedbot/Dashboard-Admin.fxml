@@ -32,6 +32,9 @@
         <Button text="☰  Edit Menu" styleClass="sidebar-nav-item"
                 onAction="#onEditMenu"/>
         <Region prefHeight="8"/>
+        <Button text="⭐  Rekomendasi Menu" styleClass="sidebar-nav-item"
+                onAction="#onRekomendasiMenu"/>
+        <Region prefHeight="8"/>
         <Button text="📍  Lokasi" styleClass="sidebar-nav-item"
                 onAction="#onLokasi"/>
         <Region prefHeight="8"/>
@@ -123,7 +126,8 @@
                     </VBox>
                 </HBox>
 
-                <!-- Bottom Row: Manajemen Menu + Informasi Kedai -->
+                <!-- Bottom Row: Manajemen Menu + Informasi Kedai + Rekomendasi -->
+
                 <HBox spacing="16">
                     <!-- Manajemen Menu -->
                     <VBox styleClass="card" spacing="12" HBox.hgrow="ALWAYS">
@@ -149,6 +153,24 @@
 
                     </VBox>
                 </HBox>
+
+                <!-- Card Rekomendasi Menu Mingguan -->
+                <VBox styleClass="card" spacing="12">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="⭐  Rekomendasi Menu Mingguan"
+                               styleClass="card-title"
+                               HBox.hgrow="ALWAYS"
+                               style="-fx-font-size:14px;"/>
+                        <Button text="Kelola →"
+                                styleClass="btn-secondary"
+                                style="-fx-font-size:12px; -fx-padding:6 12 6 12;"
+                                onAction="#onRekomendasiMenu"/>
+                    </HBox>
+                    <Region styleClass="divider"/>
+                    <VBox fx:id="rekomendasiPreviewBox" spacing="8">
+                        <Label text="Memuat data rekomendasi..." styleClass="label-muted"/>
+                    </VBox>
+                </VBox>
 
             </VBox>
         </ScrollPane>

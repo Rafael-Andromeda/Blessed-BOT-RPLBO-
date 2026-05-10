@@ -33,6 +33,11 @@
 
         <Region prefHeight="8"/>
 
+        <Button text="⭐  Rekomendasi Menu" styleClass="sidebar-nav-item"
+                onAction="#onRekomendasiMenu"/>
+
+        <Region prefHeight="8"/>
+
         <Button text="📍  Lokasi" styleClass="sidebar-nav-item-active"
                 onAction="#onLokasi"/>
 

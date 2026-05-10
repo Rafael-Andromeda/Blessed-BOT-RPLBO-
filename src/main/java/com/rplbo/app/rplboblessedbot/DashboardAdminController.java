@@ -3,6 +3,9 @@ package com.rplbo.app.rplboblessedbot;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 
 import java.net.URL;
 import java.sql.Connection;
@@ -34,6 +37,9 @@ public class DashboardAdminController implements Initializable {
     @FXML private Label lblLogin3;
     @FXML private Label lblLogin4;
 
+    // ── Preview Rekomendasi Menu ──────────────────────────────────
+    @FXML private VBox rekomendasiPreviewBox;
+
     private static final DateTimeFormatter IN_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -42,6 +48,7 @@ public class DashboardAdminController implements Initializable {
         loadMenuCount();
         loadInformasiKedai();
         loadLoginLog();
+        loadRekomendasiPreview();
     }
 
     // ── Load jumlah menu ──────────────────────────────────────────
@@ -136,13 +143,16 @@ public class DashboardAdminController implements Initializable {
         }
     }
 
-    // ── Navigasi Sidebar ──────────────────────────────────────────
-
     @FXML private void onDashboard() { /* tetap di sini */ }
 
     @FXML
     private void onEditMenu() {
         Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Manajemen-Menu.fxml");
+    }
+
+    @FXML
+    private void onRekomendasiMenu() {
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Kelola-Rekomendasi-Menu.fxml");
     }
 
     @FXML
@@ -163,5 +173,69 @@ public class DashboardAdminController implements Initializable {
     @FXML
     private void onEditInfo() {
         Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Informasi.fxml");
+    }
+
+    // ── Load preview rekomendasi menu ─────────────────────────────
+
+    private void loadRekomendasiPreview() {
+        if (rekomendasiPreviewBox == null) return;
+        rekomendasiPreviewBox.getChildren().clear();
+
+        try {
+            Connection conn = DatabaseHelper.getConnection();
+            String sql = "SELECT r.hari, m.nama AS nama_menu, m.harga, r.catatan " +
+                         "FROM rekomendasi_menu r " +
+                         "JOIN menu m ON r.menu_id = m.id " +
+                         "ORDER BY CASE r.hari " +
+                         "  WHEN 'Senin'  THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu'   THEN 3 " +
+                         "  WHEN 'Kamis'  THEN 4 WHEN 'Jumat'  THEN 5 WHEN 'Sabtu'  THEN 6 " +
+                         "  WHEN 'Minggu' THEN 7 ELSE 8 END";
+
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery(sql)) {
+
+                boolean ada = false;
+                while (rs.next()) {
+                    ada = true;
+                    String hari     = rs.getString("hari");
+                    String namaMenu = rs.getString("nama_menu");
+                    int    harga    = rs.getInt("harga");
+                    String catatan  = rs.getString("catatan");
+
+                    String hargaFmt = "Rp" + String.format("%,.0f", (double) harga).replace(",", ".");
+                    String catatanTeks = (catatan != null && !catatan.isBlank()) ? " · " + catatan : "";
+
+                    HBox row = new HBox(10);
+                    row.setStyle("-fx-alignment:CENTER_LEFT; -fx-padding:4 0 4 0;");
+
+                    Label lblHari = new Label(hari);
+                    lblHari.setStyle("-fx-font-size:12px; -fx-font-weight:bold; " +
+                                     "-fx-text-fill:#FFFFFF; -fx-background-color:#7B5441; " +
+                                     "-fx-background-radius:6; -fx-padding:2 8 2 8; -fx-min-width:64px;");
+
+                    Label lblMenu = new Label(namaMenu + "  " + hargaFmt + catatanTeks);
+                    lblMenu.setStyle("-fx-font-size:13px; -fx-text-fill:#3B2414;");
+
+                    row.getChildren().addAll(lblHari, lblMenu);
+                    rekomendasiPreviewBox.getChildren().add(row);
+
+                    Region div = new Region();
+                    div.setStyle("-fx-background-color:#E2D0B5; -fx-pref-height:1; " +
+                                 "-fx-min-height:1; -fx-max-height:1;");
+                    rekomendasiPreviewBox.getChildren().add(div);
+                }
+
+                if (!ada) {
+                    Label kosong = new Label("Belum ada rekomendasi menu yang diatur.");
+                    kosong.setStyle("-fx-font-size:13px; -fx-text-fill:#8B6E5A;");
+                    rekomendasiPreviewBox.getChildren().add(kosong);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Dashboard: gagal load rekomendasi preview — " + e.getMessage());
+            Label err = new Label("⚠ Gagal memuat rekomendasi.");
+            err.setStyle("-fx-font-size:13px; -fx-text-fill:#E05555;");
+            rekomendasiPreviewBox.getChildren().add(err);
+        }
     }
 }

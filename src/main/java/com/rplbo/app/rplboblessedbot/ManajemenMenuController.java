@@ -257,6 +257,11 @@ public class ManajemenMenuController implements Initializable {
     @FXML private void onEditMenu() { /* tetap di sini */ }
 
     @FXML
+    private void onRekomendasiMenu() {
+        Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Kelola-Rekomendasi-Menu.fxml");
+    }
+
+    @FXML
     private void onLokasi() {
         Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Lokasi.fxml");
     }
