@@ -158,7 +158,7 @@ public class UserChatController {
     private String detectTopic(String text) {
         if (text.matches(".*\\b(rekomendasi|rekomen|saran|suggest|pilihan hari|menu hari|hari ini).*"))
             return "rekomendasi";
-        if (text.matches(".*\\b(menu|harga|kopi|minum|makan|pesan|beli|ada apa|tersedia).*"))
+        if (text.matches(".*\\b(menu|harga|kopi|minum|makan|pesan|beli|ada apa|tersedia|lainnya|selain itu).*"))
             return "menu";
         if (text.matches(".*\\b(fasilitas|wifi|wi-fi|parkir|ruang|outdoor|private).*"))
             return "fasilitas";
