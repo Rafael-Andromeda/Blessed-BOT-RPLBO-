@@ -5,9 +5,22 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,8 +30,12 @@ import java.util.ResourceBundle;
 /**
  * Controller untuk Manajemen-Menu.fxml
  * Baca, tambah, edit, dan hapus menu dari DB.
+ * Gambar disimpan ke folder lokal images/menu/ — DB hanya menyimpan nama file.
  */
 public class ManajemenMenuController implements Initializable {
+
+    // Folder lokal tempat gambar menu disimpan (relatif ke working directory)
+    private static final String IMAGE_DIR = "images/menu/";
 
     @FXML private TableView<MenuRow> menuTable;
     @FXML private TableColumn<MenuRow, String> colFoto;
@@ -30,6 +47,9 @@ public class ManajemenMenuController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Pastikan folder gambar sudah ada
+        new File(IMAGE_DIR).mkdirs();
+
         setupColumns();
         loadMenuFromDb();
     }
@@ -37,7 +57,35 @@ public class ManajemenMenuController implements Initializable {
     // ── Setup kolom tabel ─────────────────────────────────────────
 
     private void setupColumns() {
-        colFoto.setCellValueFactory(c -> new SimpleStringProperty("☕"));
+        // Kolom foto: tampilkan ImageView dari file lokal
+        colFoto.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().gambar()));
+        colFoto.setCellFactory(col -> new TableCell<>() {
+            private final ImageView imgView = new ImageView();
+            private final Label lblFallback = new Label("☕");
+
+            {
+                imgView.setFitWidth(56);
+                imgView.setFitHeight(56);
+                imgView.setPreserveRatio(true);
+                imgView.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 4, 0, 0, 1);");
+            }
+
+            @Override
+            protected void updateItem(String gambar, boolean empty) {
+                super.updateItem(gambar, empty);
+                if (empty || gambar == null || gambar.isBlank()) {
+                    setGraphic(lblFallback);
+                    return;
+                }
+                File f = new File(IMAGE_DIR + gambar);
+                if (f.exists()) {
+                    imgView.setImage(new Image(f.toURI().toString(), true));
+                    setGraphic(imgView);
+                } else {
+                    setGraphic(lblFallback);
+                }
+            }
+        });
 
         colNama.setCellValueFactory(c ->
                 new SimpleStringProperty(c.getValue().nama()));
@@ -68,7 +116,7 @@ public class ManajemenMenuController implements Initializable {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : new javafx.scene.layout.HBox(4, btnEdit, btnHapus));
+                setGraphic(empty ? null : new HBox(4, btnEdit, btnHapus));
             }
         });
 
@@ -83,7 +131,7 @@ public class ManajemenMenuController implements Initializable {
             Connection conn = DatabaseHelper.getConnection();
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
-                         "SELECT m.id, m.nama, m.deskripsi, m.harga, k.nama_kategori " +
+                         "SELECT m.id, m.nama, m.deskripsi, m.harga, k.nama_kategori, m.gambar_url " +
                                  "FROM menu m " +
                                  "JOIN kategori_menu k ON m.kategori_id = k.id " +
                                  "WHERE m.tersedia = 1 " +
@@ -95,7 +143,8 @@ public class ManajemenMenuController implements Initializable {
                             rs.getString("nama"),
                             rs.getString("deskripsi"),
                             rs.getInt("harga"),
-                            rs.getString("nama_kategori")
+                            rs.getString("nama_kategori"),
+                            rs.getString("gambar_url")   // nama file, bukan URL
                     ));
                 }
             }
@@ -104,45 +153,92 @@ public class ManajemenMenuController implements Initializable {
         }
     }
 
+    // ── Helper: FileChooser untuk pilih gambar ────────────────────
+
+    private File pilihGambar() {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Pilih Foto Menu");
+        fc.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("File Gambar", "*.png", "*.jpg", "*.jpeg", "*.webp")
+        );
+        Stage stage = (Stage) menuTable.getScene().getWindow();
+        return fc.showOpenDialog(stage);
+    }
+
+    /**
+     * Salin gambar yang dipilih ke IMAGE_DIR dengan nama unik.
+     * @return nama file yang disimpan (inilah yang masuk ke DB)
+     */
+    private String simpanGambar(File source) throws IOException {
+        String namaFile = System.currentTimeMillis() + "_" + source.getName();
+        File dest = new File(IMAGE_DIR + namaFile);
+        Files.copy(source.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        return namaFile;
+    }
+
     // ── Tambah menu ───────────────────────────────────────────────
 
     @FXML
     private void onTambahMenu() {
-        // Dialog sederhana — bisa diganti form FXML tersendiri
-        TextInputDialog namaDialog = new TextInputDialog();
-        namaDialog.setTitle("Tambah Menu");
-        namaDialog.setHeaderText("Nama menu baru:");
-        namaDialog.setContentText("Nama:");
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Tambah Menu");
+        dialog.setHeaderText("Isi data menu baru");
 
-        namaDialog.showAndWait().ifPresent(nama -> {
-            TextInputDialog hargaDialog = new TextInputDialog("0");
-            hargaDialog.setTitle("Tambah Menu");
-            hargaDialog.setHeaderText("Harga untuk: " + nama);
-            hargaDialog.setContentText("Harga (angka):");
+        // Form fields
+        TextField tfNama  = new TextField();
+        TextField tfHarga = new TextField("0");
+        Label     lblFoto = new Label("(belum ada foto)");
+        Button    btnFoto = new Button("📷 Pilih Foto");
 
-            hargaDialog.showAndWait().ifPresent(hargaStr -> {
+        // State: nama file gambar yang dipilih
+        final String[] namaGambar = {null};
+
+        btnFoto.setOnAction(e -> {
+            File f = pilihGambar();
+            if (f != null) {
                 try {
-                    int harga = Integer.parseInt(hargaStr.trim());
-                    insertMenuToDb(nama, harga);
-                    loadMenuFromDb(); // refresh tabel
+                    namaGambar[0] = simpanGambar(f);
+                    lblFoto.setText("✅ " + f.getName());
+                } catch (IOException ex) {
+                    showAlert("Gagal simpan foto: " + ex.getMessage());
+                }
+            }
+        });
+
+        GridPane grid = buildFormGrid(
+                new String[]{"Nama Menu:", "Harga (Rp):", "Foto:"},
+                new javafx.scene.Node[]{tfNama, tfHarga,
+                        new HBox(8, btnFoto, lblFoto) {{ setAlignment(Pos.CENTER_LEFT); }}}
+        );
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.showAndWait().ifPresent(btn -> {
+            if (btn == ButtonType.OK) {
+                String nama = tfNama.getText().trim();
+                if (nama.isEmpty()) { showAlert("Nama tidak boleh kosong."); return; }
+                try {
+                    int harga = Integer.parseInt(tfHarga.getText().trim());
+                    insertMenuToDb(nama, harga, namaGambar[0]);
+                    loadMenuFromDb();
                 } catch (NumberFormatException ex) {
                     showAlert("Harga harus berupa angka.");
                 }
-            });
+            }
         });
     }
 
-    private void insertMenuToDb(String nama, int harga) {
+    private void insertMenuToDb(String nama, int harga, String gambar) {
         try {
             Connection conn = DatabaseHelper.getConnection();
-            // Default masuk kategori 1 (Kopi Hitam), bisa dikembangkan
             try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO menu (kategori_id, nama, harga) VALUES (1, ?, ?)")) {
+                    "INSERT INTO menu (kategori_id, nama, harga, gambar_url) VALUES (1, ?, ?, ?)")) {
                 ps.setString(1, nama);
                 ps.setInt(2, harga);
+                ps.setString(3, gambar);    // null kalau belum pilih foto — tidak apa-apa
                 ps.executeUpdate();
 
-                // Catat aktivitas
                 logAktivitas("Tambah menu \"" + nama + "\"");
                 System.out.println("✅ Menu ditambah: " + nama);
             }
@@ -154,37 +250,62 @@ public class ManajemenMenuController implements Initializable {
     // ── Edit menu ─────────────────────────────────────────────────
 
     private void showEditMenuDialog(MenuRow row) {
-        TextInputDialog dialog = new TextInputDialog(row.nama());
+        Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Edit Menu");
-        dialog.setHeaderText("Edit nama menu:");
-        dialog.setContentText("Nama:");
+        dialog.setHeaderText("Edit data menu: " + row.nama());
 
-        dialog.showAndWait().ifPresent(namaBaru -> {
-            TextInputDialog hargaDialog = new TextInputDialog(String.valueOf(row.harga()));
-            hargaDialog.setTitle("Edit Menu");
-            hargaDialog.setHeaderText("Edit harga untuk: " + namaBaru);
-            hargaDialog.setContentText("Harga:");
+        TextField tfNama  = new TextField(row.nama());
+        TextField tfHarga = new TextField(String.valueOf(row.harga()));
+        Label     lblFoto = new Label(row.gambar() != null ? "📷 " + row.gambar() : "(belum ada foto)");
+        Button    btnFoto = new Button("📷 Ganti Foto");
 
-            hargaDialog.showAndWait().ifPresent(hargaStr -> {
+        final String[] namaGambar = {row.gambar()};
+
+        btnFoto.setOnAction(e -> {
+            File f = pilihGambar();
+            if (f != null) {
                 try {
-                    int hargaBaru = Integer.parseInt(hargaStr.trim());
-                    updateMenuInDb(row.id(), namaBaru, hargaBaru);
+                    namaGambar[0] = simpanGambar(f);
+                    lblFoto.setText("✅ " + f.getName());
+                } catch (IOException ex) {
+                    showAlert("Gagal simpan foto: " + ex.getMessage());
+                }
+            }
+        });
+
+        GridPane grid = buildFormGrid(
+                new String[]{"Nama Menu:", "Harga (Rp):", "Foto:"},
+                new javafx.scene.Node[]{tfNama, tfHarga,
+                        new VBox(6, btnFoto, lblFoto)}
+        );
+
+        dialog.getDialogPane().setContent(grid);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        dialog.showAndWait().ifPresent(btn -> {
+            if (btn == ButtonType.OK) {
+                String namaBaru = tfNama.getText().trim();
+                if (namaBaru.isEmpty()) { showAlert("Nama tidak boleh kosong."); return; }
+                try {
+                    int hargaBaru = Integer.parseInt(tfHarga.getText().trim());
+                    updateMenuInDb(row.id(), namaBaru, hargaBaru, namaGambar[0]);
                     loadMenuFromDb();
                 } catch (NumberFormatException ex) {
                     showAlert("Harga harus berupa angka.");
                 }
-            });
+            }
         });
     }
 
-    private void updateMenuInDb(int id, String nama, int harga) {
+    private void updateMenuInDb(int id, String nama, int harga, String gambar) {
         try {
             Connection conn = DatabaseHelper.getConnection();
             try (PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE menu SET nama = ?, harga = ? WHERE id = ?")) {
+                    "UPDATE menu SET nama = ?, harga = ?, gambar_url = ? WHERE id = ?")) {
                 ps.setString(1, nama);
                 ps.setInt(2, harga);
-                ps.setInt(3, id);
+                ps.setString(3, gambar);
+                ps.setInt(4, id);
                 ps.executeUpdate();
 
                 logAktivitas("Edit menu \"" + nama + "\"");
@@ -213,7 +334,6 @@ public class ManajemenMenuController implements Initializable {
     private void deleteMenuFromDb(MenuRow row) {
         try {
             Connection conn = DatabaseHelper.getConnection();
-            // Soft delete: set tersedia = 0
             try (PreparedStatement ps = conn.prepareStatement(
                     "UPDATE menu SET tersedia = 0 WHERE id = ?")) {
                 ps.setInt(1, row.id());
@@ -226,6 +346,20 @@ public class ManajemenMenuController implements Initializable {
         } catch (Exception e) {
             System.err.println("Gagal hapus menu: " + e.getMessage());
         }
+    }
+
+    // ── Utility: build GridPane form ──────────────────────────────
+
+    private GridPane buildFormGrid(String[] labels, javafx.scene.Node[] fields) {
+        GridPane grid = new GridPane();
+        grid.setHgap(12);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(16));
+        for (int i = 0; i < labels.length; i++) {
+            grid.add(new Label(labels[i]), 0, i);
+            grid.add(fields[i], 1, i);
+        }
+        return grid;
     }
 
     // ── Log aktivitas admin ───────────────────────────────────────
@@ -271,7 +405,10 @@ public class ManajemenMenuController implements Initializable {
         Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Logout.fxml");
     }
 
-    // ── Record ───────────────────────────────────────────────────
+    // ── Record ────────────────────────────────────────────────────
 
-    public record MenuRow(int id, String nama, String deskripsi, int harga, String kategori) {}
+    /**
+     * @param gambar nama file gambar di folder images/menu/ (bukan URL penuh)
+     */
+    public record MenuRow(int id, String nama, String deskripsi, int harga, String kategori, String gambar) {}
 }
