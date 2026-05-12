@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.io.File;
 
 public class UserChatController {
 
@@ -232,23 +233,21 @@ public class UserChatController {
             icon.setMinSize(56, 56);
             icon.setMaxSize(56, 56);
 
-            String gambarNama = (item.length > 3 && item[3] != null) ? item[3] : null;
-            boolean gambarLoaded = false;
-            if (gambarNama != null && !gambarNama.isBlank()) {
+            String imgUrl = (item.length > 3 && item[3] != null) ? item[3] : null;
+            if (imgUrl != null && !imgUrl.isBlank()) {
                 try {
-                    java.io.File imgFile = new java.io.File("images/menu/" + gambarNama);
-                    if (imgFile.exists()) {
-                        ImageView iv = new ImageView(new Image(imgFile.toURI().toString(), 56, 56, true, true, true));
-                        iv.setFitWidth(56);
-                        iv.setFitHeight(56);
-                        icon.getChildren().add(iv);
-                        gambarLoaded = true;
-                    }
+                    File imgFile = new File("images/menu/" + imgUrl);
+                    String imageUri = imgFile.exists() ? imgFile.toURI().toString() : imgUrl;
+                    ImageView iv = new ImageView(new Image(imageUri, 56, 56, true, true, true));
+                    iv.setFitWidth(56);
+                    iv.setFitHeight(56);
+                    icon.getChildren().add(iv);
                 } catch (Exception e) {
-                    System.err.println("Gagal load gambar menu: " + gambarNama + " — " + e.getMessage());
+                    Label emoji = new Label("☕");
+                    emoji.setStyle("-fx-font-size:20px;");
+                    icon.getChildren().add(emoji);
                 }
-            }
-            if (!gambarLoaded) {
+            } else {
                 Label emoji = new Label("☕");
                 emoji.setStyle("-fx-font-size:20px;");
                 icon.getChildren().add(emoji);
