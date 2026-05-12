@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.io.File;
 
 public class UserChatController {
 
@@ -235,7 +236,9 @@ public class UserChatController {
             String imgUrl = (item.length > 3 && item[3] != null) ? item[3] : null;
             if (imgUrl != null && !imgUrl.isBlank()) {
                 try {
-                    ImageView iv = new ImageView(new Image(imgUrl, 56, 56, true, true, true));
+                    File imgFile = new File("images/menu/" + imgUrl);
+                    String imageUri = imgFile.exists() ? imgFile.toURI().toString() : imgUrl;
+                    ImageView iv = new ImageView(new Image(imageUri, 56, 56, true, true, true));
                     iv.setFitWidth(56);
                     iv.setFitHeight(56);
                     icon.getChildren().add(iv);
