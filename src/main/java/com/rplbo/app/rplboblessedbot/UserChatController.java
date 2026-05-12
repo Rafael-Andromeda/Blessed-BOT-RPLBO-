@@ -232,19 +232,23 @@ public class UserChatController {
             icon.setMinSize(56, 56);
             icon.setMaxSize(56, 56);
 
-            String imgUrl = (item.length > 3 && item[3] != null) ? item[3] : null;
-            if (imgUrl != null && !imgUrl.isBlank()) {
+            String gambarNama = (item.length > 3 && item[3] != null) ? item[3] : null;
+            boolean gambarLoaded = false;
+            if (gambarNama != null && !gambarNama.isBlank()) {
                 try {
-                    ImageView iv = new ImageView(new Image(imgUrl, 56, 56, true, true, true));
-                    iv.setFitWidth(56);
-                    iv.setFitHeight(56);
-                    icon.getChildren().add(iv);
+                    java.io.File imgFile = new java.io.File("images/menu/" + gambarNama);
+                    if (imgFile.exists()) {
+                        ImageView iv = new ImageView(new Image(imgFile.toURI().toString(), 56, 56, true, true, true));
+                        iv.setFitWidth(56);
+                        iv.setFitHeight(56);
+                        icon.getChildren().add(iv);
+                        gambarLoaded = true;
+                    }
                 } catch (Exception e) {
-                    Label emoji = new Label("☕");
-                    emoji.setStyle("-fx-font-size:20px;");
-                    icon.getChildren().add(emoji);
+                    System.err.println("Gagal load gambar menu: " + gambarNama + " — " + e.getMessage());
                 }
-            } else {
+            }
+            if (!gambarLoaded) {
                 Label emoji = new Label("☕");
                 emoji.setStyle("-fx-font-size:20px;");
                 icon.getChildren().add(emoji);
