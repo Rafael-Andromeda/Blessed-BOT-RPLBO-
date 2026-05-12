@@ -27,21 +27,18 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
-/**
- * Controller untuk Manajemen-Menu.fxml
- * Baca, tambah, edit, dan hapus menu dari DB.
- * Gambar disimpan ke folder lokal images/menu/ — DB hanya menyimpan nama file.
- */
 public class ManajemenMenuController implements Initializable {
 
-    // Folder lokal tempat gambar menu disimpan (relatif ke working directory)
     private static final String IMAGE_DIR = "images/menu/";
 
     @FXML private TableView<MenuRow> menuTable;
     @FXML private TableColumn<MenuRow, String> colFoto;
     @FXML private TableColumn<MenuRow, String> colNama;
+    @FXML private TableColumn<MenuRow, String> colKategori;
     @FXML private TableColumn<MenuRow, String> colHarga;
     @FXML private TableColumn<MenuRow, String> colAksi;
 
@@ -49,48 +46,59 @@ public class ManajemenMenuController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Pastikan folder gambar sudah ada
         new File(IMAGE_DIR).mkdirs();
-
         setupColumns();
         loadMenuFromDb();
+    }
+
+    // ── Load kategori dari DB ──────────────────────────────────────
+
+    private List<KategoriItem> loadKategoriList() {
+        List<KategoriItem> list = new ArrayList<>();
+        try {
+            Connection conn = DatabaseHelper.getConnection();
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery(
+                         "SELECT id, nama_kategori FROM kategori_menu ORDER BY urutan")) {
+                while (rs.next()) {
+                    list.add(new KategoriItem(rs.getInt("id"), rs.getString("nama_kategori")));
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Gagal load kategori: " + e.getMessage());
+        }
+        return list;
     }
 
     // ── Setup kolom tabel ─────────────────────────────────────────
 
     private void setupColumns() {
-        // Kolom foto: tampilkan ImageView dari file lokal
         colFoto.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().gambar()));
         colFoto.setCellFactory(col -> new TableCell<>() {
             private final ImageView imgView = new ImageView();
             private final Label lblFallback = new Label("☕");
-
             {
                 imgView.setFitWidth(56);
                 imgView.setFitHeight(56);
                 imgView.setPreserveRatio(true);
                 imgView.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 4, 0, 0, 1);");
             }
-
             @Override
             protected void updateItem(String gambar, boolean empty) {
                 super.updateItem(gambar, empty);
-                if (empty || gambar == null || gambar.isBlank()) {
-                    setGraphic(lblFallback);
-                    return;
-                }
+                if (empty || gambar == null || gambar.isBlank()) { setGraphic(lblFallback); return; }
                 File f = new File(IMAGE_DIR + gambar);
-                if (f.exists()) {
-                    imgView.setImage(new Image(f.toURI().toString(), true));
-                    setGraphic(imgView);
-                } else {
-                    setGraphic(lblFallback);
-                }
+                if (f.exists()) { imgView.setImage(new Image(f.toURI().toString(), true)); setGraphic(imgView); }
+                else { setGraphic(lblFallback); }
             }
         });
 
-        colNama.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().nama()));
+        colNama.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().nama()));
+
+        if (colKategori != null) {
+            colKategori.setCellValueFactory(c ->
+                    new SimpleStringProperty(c.getValue().kategori() != null ? c.getValue().kategori() : "-"));
+        }
 
         colHarga.setCellValueFactory(c ->
                 new SimpleStringProperty("Rp" + String.format("%,.0f", (double) c.getValue().harga())
@@ -99,22 +107,12 @@ public class ManajemenMenuController implements Initializable {
         colAksi.setCellFactory(col -> new TableCell<>() {
             private final Button btnEdit  = new Button("✏");
             private final Button btnHapus = new Button("🗑");
-
             {
                 btnEdit.setStyle("-fx-cursor:hand;");
                 btnHapus.setStyle("-fx-cursor:hand; -fx-text-fill:red;");
-
-                btnEdit.setOnAction(e -> {
-                    MenuRow row = getTableView().getItems().get(getIndex());
-                    showEditMenuDialog(row);
-                });
-
-                btnHapus.setOnAction(e -> {
-                    MenuRow row = getTableView().getItems().get(getIndex());
-                    onHapusMenu(row);
-                });
+                btnEdit.setOnAction(e -> showEditMenuDialog(getTableView().getItems().get(getIndex())));
+                btnHapus.setOnAction(e -> onHapusMenu(getTableView().getItems().get(getIndex())));
             }
-
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
@@ -133,12 +131,11 @@ public class ManajemenMenuController implements Initializable {
             Connection conn = DatabaseHelper.getConnection();
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
-                         "SELECT m.id, m.nama, m.deskripsi, m.harga, k.nama_kategori, m.gambar_url " +
+                         "SELECT m.id, m.nama, m.deskripsi, m.harga, k.nama_kategori, m.gambar_url, m.kategori_id " +
                                  "FROM menu m " +
                                  "JOIN kategori_menu k ON m.kategori_id = k.id " +
                                  "WHERE m.tersedia = 1 " +
                                  "ORDER BY k.urutan, m.id")) {
-
                 while (rs.next()) {
                     menuData.add(new MenuRow(
                             rs.getInt("id"),
@@ -146,7 +143,8 @@ public class ManajemenMenuController implements Initializable {
                             rs.getString("deskripsi"),
                             rs.getInt("harga"),
                             rs.getString("nama_kategori"),
-                            rs.getString("gambar_url")   // nama file, bukan URL
+                            rs.getString("gambar_url"),
+                            rs.getInt("kategori_id")
                     ));
                 }
             }
@@ -155,26 +153,19 @@ public class ManajemenMenuController implements Initializable {
         }
     }
 
-    // ── Helper: FileChooser untuk pilih gambar ────────────────────
+    // ── Helper gambar ─────────────────────────────────────────────
 
     private File pilihGambar() {
         FileChooser fc = new FileChooser();
         fc.setTitle("Pilih Foto Menu");
         fc.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("File Gambar", "*.png", "*.jpg", "*.jpeg", "*.webp")
-        );
-        Stage stage = (Stage) menuTable.getScene().getWindow();
-        return fc.showOpenDialog(stage);
+                new FileChooser.ExtensionFilter("File Gambar", "*.png", "*.jpg", "*.jpeg", "*.webp"));
+        return fc.showOpenDialog((Stage) menuTable.getScene().getWindow());
     }
 
-    /**
-     * Salin gambar yang dipilih ke IMAGE_DIR dengan nama unik.
-     * @return nama file yang disimpan (inilah yang masuk ke DB)
-     */
     private String simpanGambar(File source) throws IOException {
         String namaFile = System.currentTimeMillis() + "_" + source.getName();
-        File dest = new File(IMAGE_DIR + namaFile);
-        Files.copy(source.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(source.toPath(), new File(IMAGE_DIR + namaFile).toPath(), StandardCopyOption.REPLACE_EXISTING);
         return namaFile;
     }
 
@@ -182,190 +173,187 @@ public class ManajemenMenuController implements Initializable {
 
     @FXML
     private void onTambahMenu() {
+        List<KategoriItem> kategoriList = loadKategoriList();
+        if (kategoriList.isEmpty()) { showAlert("Tidak ada kategori di database."); return; }
+
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Tambah Menu");
         dialog.setHeaderText("Isi data menu baru");
 
-        // Form fields
         TextField tfNama  = new TextField();
+        tfNama.setPromptText("Contoh: Americano");
+
+        TextArea taDesk = new TextArea();
+        taDesk.setPromptText("Deskripsi singkat menu (opsional)");
+        taDesk.setPrefRowCount(3);
+        taDesk.setWrapText(true);
+
         TextField tfHarga = new TextField("0");
-        Label     lblFoto = new Label("(belum ada foto)");
-        Button    btnFoto = new Button("📷 Pilih Foto");
 
-        // State: nama file gambar yang dipilih
+        ComboBox<KategoriItem> cbKategori = new ComboBox<>(FXCollections.observableArrayList(kategoriList));
+        cbKategori.getSelectionModel().selectFirst();
+        cbKategori.setMaxWidth(Double.MAX_VALUE);
+
+        Label  lblFoto = new Label("(belum ada foto)");
+        Button btnFoto = new Button("📷 Pilih Foto");
         final String[] namaGambar = {null};
-
         btnFoto.setOnAction(e -> {
             File f = pilihGambar();
             if (f != null) {
-                try {
-                    namaGambar[0] = simpanGambar(f);
-                    lblFoto.setText("✅ " + f.getName());
-                } catch (IOException ex) {
-                    showAlert("Gagal simpan foto: " + ex.getMessage());
-                }
+                try { namaGambar[0] = simpanGambar(f); lblFoto.setText("✅ " + f.getName()); }
+                catch (IOException ex) { showAlert("Gagal simpan foto: " + ex.getMessage()); }
             }
         });
 
-        GridPane grid = buildFormGrid(
-                new String[]{"Nama Menu:", "Harga (Rp):", "Foto:"},
-                new javafx.scene.Node[]{tfNama, tfHarga,
-                        new HBox(8, btnFoto, lblFoto) {{ setAlignment(Pos.CENTER_LEFT); }}}
-        );
+        GridPane grid = buildGrid();
+        grid.add(new Label("Kategori:"),   0, 0); grid.add(cbKategori, 1, 0);
+        grid.add(new Label("Nama Menu:"),  0, 1); grid.add(tfNama,     1, 1);
+        grid.add(new Label("Deskripsi:"),  0, 2); grid.add(taDesk,     1, 2);
+        grid.add(new Label("Harga (Rp):"), 0, 3); grid.add(tfHarga,    1, 3);
+        grid.add(new Label("Foto:"),       0, 4);
+        grid.add(new HBox(8, btnFoto, lblFoto) {{ setAlignment(Pos.CENTER_LEFT); }}, 1, 4);
 
         dialog.getDialogPane().setContent(grid);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.getDialogPane().setPrefWidth(460);
 
         dialog.showAndWait().ifPresent(btn -> {
-            if (btn == ButtonType.OK) {
-                String nama = tfNama.getText().trim();
-                if (nama.isEmpty()) { showAlert("Nama tidak boleh kosong."); return; }
-                try {
-                    int harga = Integer.parseInt(tfHarga.getText().trim());
-                    insertMenuToDb(nama, harga, namaGambar[0]);
-                    loadMenuFromDb();
-                } catch (NumberFormatException ex) {
-                    showAlert("Harga harus berupa angka.");
-                }
-            }
+            if (btn != ButtonType.OK) return;
+            String nama = tfNama.getText().trim();
+            if (nama.isEmpty()) { showAlert("Nama tidak boleh kosong."); return; }
+            KategoriItem kat = cbKategori.getValue();
+            if (kat == null) { showAlert("Pilih kategori."); return; }
+            try {
+                insertMenuToDb(nama, taDesk.getText().trim(), Integer.parseInt(tfHarga.getText().trim()), kat.id(), namaGambar[0]);
+                loadMenuFromDb();
+            } catch (NumberFormatException ex) { showAlert("Harga harus berupa angka."); }
         });
     }
 
-    private void insertMenuToDb(String nama, int harga, String gambar) {
+    private void insertMenuToDb(String nama, String deskripsi, int harga, int kategoriId, String gambar) {
         try {
             Connection conn = DatabaseHelper.getConnection();
             try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO menu (kategori_id, nama, harga, gambar_url) VALUES (1, ?, ?, ?)")) {
-                ps.setString(1, nama);
-                ps.setInt(2, harga);
-                ps.setString(3, gambar);    // null kalau belum pilih foto — tidak apa-apa
+                    "INSERT INTO menu (kategori_id, nama, deskripsi, harga, gambar_url) VALUES (?, ?, ?, ?, ?)")) {
+                ps.setInt(1, kategoriId);
+                ps.setString(2, nama);
+                ps.setString(3, deskripsi.isEmpty() ? null : deskripsi);
+                ps.setInt(4, harga);
+                ps.setString(5, gambar);
                 ps.executeUpdate();
-
                 logAktivitas("Tambah menu \"" + nama + "\"");
-                System.out.println("✅ Menu ditambah: " + nama);
             }
-        } catch (Exception e) {
-            System.err.println("Gagal tambah menu: " + e.getMessage());
-        }
+        } catch (Exception e) { System.err.println("Gagal tambah menu: " + e.getMessage()); }
     }
 
     // ── Edit menu ─────────────────────────────────────────────────
 
     private void showEditMenuDialog(MenuRow row) {
+        List<KategoriItem> kategoriList = loadKategoriList();
+
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Edit Menu");
-        dialog.setHeaderText("Edit data menu: " + row.nama());
+        dialog.setHeaderText("Edit: " + row.nama());
 
         TextField tfNama  = new TextField(row.nama());
+        TextArea  taDesk  = new TextArea(row.deskripsi() != null ? row.deskripsi() : "");
+        taDesk.setPrefRowCount(3); taDesk.setWrapText(true);
         TextField tfHarga = new TextField(String.valueOf(row.harga()));
-        Label     lblFoto = new Label(row.gambar() != null ? "📷 " + row.gambar() : "(belum ada foto)");
-        Button    btnFoto = new Button("📷 Ganti Foto");
 
+        ComboBox<KategoriItem> cbKategori = new ComboBox<>(FXCollections.observableArrayList(kategoriList));
+        kategoriList.stream().filter(k -> k.id() == row.kategoriId()).findFirst()
+                .ifPresent(k -> cbKategori.getSelectionModel().select(k));
+        cbKategori.setMaxWidth(Double.MAX_VALUE);
+
+        Label  lblFoto = new Label(row.gambar() != null ? "📷 " + row.gambar() : "(belum ada foto)");
+        Button btnFoto = new Button("📷 Ganti Foto");
         final String[] namaGambar = {row.gambar()};
-
         btnFoto.setOnAction(e -> {
             File f = pilihGambar();
             if (f != null) {
-                try {
-                    namaGambar[0] = simpanGambar(f);
-                    lblFoto.setText("✅ " + f.getName());
-                } catch (IOException ex) {
-                    showAlert("Gagal simpan foto: " + ex.getMessage());
-                }
+                try { namaGambar[0] = simpanGambar(f); lblFoto.setText("✅ " + f.getName()); }
+                catch (IOException ex) { showAlert("Gagal simpan foto: " + ex.getMessage()); }
             }
         });
 
-        GridPane grid = buildFormGrid(
-                new String[]{"Nama Menu:", "Harga (Rp):", "Foto:"},
-                new javafx.scene.Node[]{tfNama, tfHarga,
-                        new VBox(6, btnFoto, lblFoto)}
-        );
+        GridPane grid = buildGrid();
+        grid.add(new Label("Kategori:"),   0, 0); grid.add(cbKategori, 1, 0);
+        grid.add(new Label("Nama Menu:"),  0, 1); grid.add(tfNama,     1, 1);
+        grid.add(new Label("Deskripsi:"),  0, 2); grid.add(taDesk,     1, 2);
+        grid.add(new Label("Harga (Rp):"), 0, 3); grid.add(tfHarga,    1, 3);
+        grid.add(new Label("Foto:"),       0, 4); grid.add(new VBox(6, btnFoto, lblFoto), 1, 4);
 
         dialog.getDialogPane().setContent(grid);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.getDialogPane().setPrefWidth(460);
 
         dialog.showAndWait().ifPresent(btn -> {
-            if (btn == ButtonType.OK) {
-                String namaBaru = tfNama.getText().trim();
-                if (namaBaru.isEmpty()) { showAlert("Nama tidak boleh kosong."); return; }
-                try {
-                    int hargaBaru = Integer.parseInt(tfHarga.getText().trim());
-                    updateMenuInDb(row.id(), namaBaru, hargaBaru, namaGambar[0]);
-                    loadMenuFromDb();
-                } catch (NumberFormatException ex) {
-                    showAlert("Harga harus berupa angka.");
-                }
-            }
+            if (btn != ButtonType.OK) return;
+            String namaBaru = tfNama.getText().trim();
+            if (namaBaru.isEmpty()) { showAlert("Nama tidak boleh kosong."); return; }
+            KategoriItem kat = cbKategori.getValue();
+            if (kat == null) { showAlert("Pilih kategori."); return; }
+            try {
+                updateMenuInDb(row.id(), namaBaru, taDesk.getText().trim(), Integer.parseInt(tfHarga.getText().trim()), kat.id(), namaGambar[0]);
+                loadMenuFromDb();
+            } catch (NumberFormatException ex) { showAlert("Harga harus berupa angka."); }
         });
     }
 
-    private void updateMenuInDb(int id, String nama, int harga, String gambar) {
+    private void updateMenuInDb(int id, String nama, String deskripsi, int harga, int kategoriId, String gambar) {
         try {
             Connection conn = DatabaseHelper.getConnection();
             try (PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE menu SET nama = ?, harga = ?, gambar_url = ? WHERE id = ?")) {
+                    "UPDATE menu SET nama=?, deskripsi=?, harga=?, kategori_id=?, gambar_url=? WHERE id=?")) {
                 ps.setString(1, nama);
-                ps.setInt(2, harga);
-                ps.setString(3, gambar);
-                ps.setInt(4, id);
+                ps.setString(2, deskripsi.isEmpty() ? null : deskripsi);
+                ps.setInt(3, harga);
+                ps.setInt(4, kategoriId);
+                ps.setString(5, gambar);
+                ps.setInt(6, id);
                 ps.executeUpdate();
-
                 logAktivitas("Edit menu \"" + nama + "\"");
-                System.out.println("✅ Menu diupdate: " + nama);
             }
-        } catch (Exception e) {
-            System.err.println("Gagal edit menu: " + e.getMessage());
-        }
+        } catch (Exception e) { System.err.println("Gagal edit menu: " + e.getMessage()); }
     }
 
     // ── Hapus menu (soft delete) ───────────────────────────────────
 
     private void onHapusMenu(MenuRow row) {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
-                "Hapus menu \"" + row.nama() + "\"?",
-                ButtonType.YES, ButtonType.NO);
+                "Hapus menu \"" + row.nama() + "\"?", ButtonType.YES, ButtonType.NO);
         confirm.setTitle("Hapus Menu");
-
-        confirm.showAndWait().ifPresent(btn -> {
-            if (btn == ButtonType.YES) {
-                deleteMenuFromDb(row);
-            }
-        });
+        confirm.showAndWait().ifPresent(btn -> { if (btn == ButtonType.YES) deleteMenuFromDb(row); });
     }
 
     private void deleteMenuFromDb(MenuRow row) {
         try {
             Connection conn = DatabaseHelper.getConnection();
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "UPDATE menu SET tersedia = 0 WHERE id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement("UPDATE menu SET tersedia = 0 WHERE id = ?")) {
                 ps.setInt(1, row.id());
                 ps.executeUpdate();
-
                 logAktivitas("Hapus menu \"" + row.nama() + "\"");
                 loadMenuFromDb();
-                System.out.println("✅ Menu dihapus: " + row.nama());
             }
-        } catch (Exception e) {
-            System.err.println("Gagal hapus menu: " + e.getMessage());
-        }
+        } catch (Exception e) { System.err.println("Gagal hapus menu: " + e.getMessage()); }
     }
 
-    // ── Utility: build GridPane form ──────────────────────────────
+    // ── Utility ──────────────────────────────────────────────────
 
-    private GridPane buildFormGrid(String[] labels, javafx.scene.Node[] fields) {
+    private GridPane buildGrid() {
         GridPane grid = new GridPane();
         grid.setHgap(12);
         grid.setVgap(10);
         grid.setPadding(new Insets(16));
-        for (int i = 0; i < labels.length; i++) {
-            grid.add(new Label(labels[i]), 0, i);
-            grid.add(fields[i], 1, i);
-        }
+        javafx.scene.layout.ColumnConstraints cc0 = new javafx.scene.layout.ColumnConstraints();
+        cc0.setMinWidth(90);
+        javafx.scene.layout.ColumnConstraints cc1 = new javafx.scene.layout.ColumnConstraints();
+        cc1.setHgrow(javafx.scene.layout.Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(cc0, cc1);
         return grid;
     }
 
-    // ── Log aktivitas admin ───────────────────────────────────────
-
+    // ── Log aktivitas admin (waktu lokal WIB, bukan UTC) ──────────
     private void logAktivitas(String keterangan) {
         try {
             Connection conn = DatabaseHelper.getConnection();
@@ -388,32 +376,18 @@ public class ManajemenMenuController implements Initializable {
 
     // ── Navigasi Sidebar ──────────────────────────────────────────
 
-    @FXML
-    private void onDashboard() {
-        Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Dashboard-Admin.fxml");
+    @FXML private void onDashboard()       { Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Dashboard-Admin.fxml"); }
+    @FXML private void onEditMenu()        { /* tetap di sini */ }
+    @FXML private void onRekomendasiMenu() { Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Kelola-Rekomendasi-Menu.fxml"); }
+    @FXML private void onLokasi()          { Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Lokasi.fxml"); }
+    @FXML private void onLogout()          { Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Logout.fxml"); }
+
+    // ── Records ───────────────────────────────────────────────────
+
+    public record MenuRow(int id, String nama, String deskripsi, int harga,
+                          String kategori, String gambar, int kategoriId) {}
+
+    public record KategoriItem(int id, String nama) {
+        @Override public String toString() { return nama; }
     }
-
-    @FXML private void onEditMenu() { /* tetap di sini */ }
-
-    @FXML
-    private void onRekomendasiMenu() {
-        Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Kelola-Rekomendasi-Menu.fxml");
-    }
-
-    @FXML
-    private void onLokasi() {
-        Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Lokasi.fxml");
-    }
-
-    @FXML
-    private void onLogout() {
-        Navigator.goTo(menuTable, "/com/rplbo/app/rplboblessedbot/Logout.fxml");
-    }
-
-    // ── Record ────────────────────────────────────────────────────
-
-    /**
-     * @param gambar nama file gambar di folder images/menu/ (bukan URL penuh)
-     */
-    public record MenuRow(int id, String nama, String deskripsi, int harga, String kategori, String gambar) {}
 }

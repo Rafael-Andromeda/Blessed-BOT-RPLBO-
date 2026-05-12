@@ -33,11 +33,16 @@ public class UserChatController {
     private Map<String, List<String[]>> menuByKategori = new LinkedHashMap<>();
     private List<String[]> fasilitasList = new ArrayList<>();
     private String jamBuka = "08:00", jamTutup = "22:00", hariOps = "Setiap Hari";
-    private String namaKedai = "Kedai Kopi Blessed", alamat = "", mapsUrl = "";
+    private String namaKedai = "Kedai Kopi Blessed", alamat = "", mapsUrl = "", patokan = "";
 
     @FXML
     public void initialize() {
         loadAllDataFromDb();
+
+        // Auto-scroll setiap kali tinggi chatContainer berubah (termasuk saat gambar selesai dimuat)
+        chatContainer.heightProperty().addListener((obs, oldH, newH) ->
+                chatScrollPane.setVvalue(1.0));
+
         javafx.application.Platform.runLater(this::showRekomendasiMenuHariIni);
     }
 
@@ -71,7 +76,7 @@ public class UserChatController {
 
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
-                         "SELECT nama_kedai, jam_buka, jam_tutup, hari_operasi, alamat, maps_url " +
+                         "SELECT nama_kedai, jam_buka, jam_tutup, hari_operasi, alamat, maps_url, patokan " +
                                  "FROM informasi_kedai LIMIT 1")) {
                 if (rs.next()) {
                     namaKedai = rs.getString("nama_kedai");
@@ -80,6 +85,8 @@ public class UserChatController {
                     hariOps   = rs.getString("hari_operasi");
                     alamat    = rs.getString("alamat");
                     mapsUrl   = rs.getString("maps_url");
+                    String dbPatokan = rs.getString("patokan");
+                    patokan = (dbPatokan != null && !dbPatokan.isBlank()) ? dbPatokan : "";
                 }
             }
 
@@ -115,6 +122,7 @@ public class UserChatController {
         );
         mapsUrl = "https://maps.google.com/?q=Kedai+Kopi+Blessed+Jogja";
         alamat = "Jl. Anggrek No.10, Jogja";
+        patokan = "Dekat Malioboro, 500m dari Stasiun";
     }
 
     @FXML
@@ -211,6 +219,7 @@ public class UserChatController {
             tabButtons.get(i).setOnAction(e -> {
                 setActiveTab(tabs, tabButtons.get(idx));
                 populateMenuList(menuList, menuByKategori.get(kategoriList.get(idx)));
+                scrollToBottom();
             });
         }
 
@@ -455,6 +464,7 @@ public class UserChatController {
         card.setMaxWidth(360);
         VBox.setMargin(card, new Insets(0));
 
+        // --- Baris Alamat ---
         HBox alamatRow = new HBox(8);
         alamatRow.setAlignment(Pos.CENTER_LEFT);
         Label pin = new Label("📍");
@@ -468,6 +478,23 @@ public class UserChatController {
         alamatInfo.getChildren().addAll(namaKedaiLbl, alamatLbl);
         alamatRow.getChildren().addAll(pin, alamatInfo);
 
+        // --- Baris Patokan (dari DB, sinkron dengan admin) ---
+        HBox patokanRow = new HBox(8);
+        patokanRow.setAlignment(Pos.CENTER_LEFT);
+        if (patokan != null && !patokan.isBlank()) {
+            Label flagIcon = new Label("🚩");
+            flagIcon.setStyle("-fx-font-size:16px;");
+            VBox patokanInfo = new VBox(1);
+            Label patokanTitle = new Label("Patokan");
+            patokanTitle.setStyle("-fx-font-size:11px; -fx-text-fill:#A07850; -fx-font-weight:bold;");
+            Label patokanLbl = new Label(patokan);
+            patokanLbl.setStyle("-fx-font-size:13px; -fx-text-fill:#3B2414;");
+            patokanLbl.setWrapText(true);
+            patokanInfo.getChildren().addAll(patokanTitle, patokanLbl);
+            patokanRow.getChildren().addAll(flagIcon, patokanInfo);
+        }
+
+        // --- Map Placeholder ---
         StackPane mapBox = new StackPane();
         mapBox.getStyleClass().add("map-placeholder");
         mapBox.setPrefHeight(140);
@@ -480,6 +507,7 @@ public class UserChatController {
         mapContent.getChildren().addAll(mapEmoji, mapHint);
         mapBox.getChildren().add(mapContent);
 
+        // --- Tombol Google Maps ---
         Button btnMaps = new Button("Buka di Google Maps");
         btnMaps.getStyleClass().add("btn-secondary");
         btnMaps.setMaxWidth(Double.MAX_VALUE);
@@ -492,7 +520,13 @@ public class UserChatController {
             }
         });
 
-        card.getChildren().addAll(alamatRow, mapBox, btnMaps);
+        // Patokan hanya ditampilkan kalau tidak kosong
+        if (!patokanRow.getChildren().isEmpty()) {
+            card.getChildren().addAll(alamatRow, patokanRow, mapBox, btnMaps);
+        } else {
+            card.getChildren().addAll(alamatRow, mapBox, btnMaps);
+        }
+
         appendBotNode(card);
     }
 
@@ -570,6 +604,8 @@ public class UserChatController {
 
     private void scrollToBottom() {
         javafx.application.Platform.runLater(() ->
-                chatScrollPane.setVvalue(1.0));
+                javafx.application.Platform.runLater(() ->
+                        javafx.application.Platform.runLater(() ->
+                                chatScrollPane.setVvalue(1.0))));
     }
 }
