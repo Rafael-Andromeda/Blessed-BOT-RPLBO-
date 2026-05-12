@@ -42,7 +42,8 @@ public class LokasiController implements Initializable {
 
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
-                         "SELECT nama_kedai, alamat, jam_buka, jam_tutup, hari_operasi, maps_url, phone, email, instagram " +
+                         "SELECT nama_kedai, alamat, jam_buka, jam_tutup, hari_operasi, maps_url, " +
+                                 "patokan, parkir, parkir_detail, phone, email, instagram " +
                                  "FROM informasi_kedai LIMIT 1")) {
 
                 if (rs.next()) {
@@ -62,9 +63,12 @@ public class LokasiController implements Initializable {
                     lblEmail.setText(rs.getString("email"));
                     lblInstagram.setText(rs.getString("instagram"));
 
-                    lblPatokan.setText("Dekat Malioboro, 500m dari Stasiun");
-                    lblParkir.setText("Tersedia");
-                    lblParkirDetail.setText("Motor & Mobil");
+                    String patokan = rs.getString("patokan");
+                    String parkir = rs.getString("parkir");
+                    String parkirDetail = rs.getString("parkir_detail");
+                    lblPatokan.setText(patokan != null && !patokan.isBlank() ? patokan : "Dekat Malioboro, 500m dari Stasiun");
+                    lblParkir.setText(parkir != null && !parkir.isBlank() ? parkir : "Tersedia");
+                    lblParkirDetail.setText(parkirDetail != null && !parkirDetail.isBlank() ? parkirDetail : "Motor & Mobil");
                 }
             }
 
@@ -147,26 +151,33 @@ public class LokasiController implements Initializable {
 
         dialog.showAndWait().ifPresent(result -> {
             if (result == ButtonType.OK) {
-                lblMapAlamat.setText(txtMapAlamat.getText());
-                lblAlamat.setText(txtAlamat.getText());
-                lblJam.setText(txtJam.getText());
-                lblHari.setText(txtHari.getText());
-                lblPatokan.setText(txtPatokan.getText());
-                lblParkir.setText(txtParkir.getText());
-                lblParkirDetail.setText(txtParkirDetail.getText());
-                googleMapsUrl = txtGoogleMaps.getText();
+                // Kalau field dikosongkan, pakai nilai lama
+                String newMapAlamat    = txtMapAlamat.getText().isBlank()    ? lblMapAlamat.getText()    : txtMapAlamat.getText();
+                String newAlamat       = txtAlamat.getText().isBlank()       ? lblAlamat.getText()       : txtAlamat.getText();
+                String newJam          = txtJam.getText().isBlank()          ? lblJam.getText()          : txtJam.getText();
+                String newHari         = txtHari.getText().isBlank()         ? lblHari.getText()         : txtHari.getText();
+                String newPatokan      = txtPatokan.getText().isBlank()      ? lblPatokan.getText()      : txtPatokan.getText();
+                String newParkir       = txtParkir.getText().isBlank()       ? lblParkir.getText()       : txtParkir.getText();
+                String newParkirDetail = txtParkirDetail.getText().isBlank() ? lblParkirDetail.getText() : txtParkirDetail.getText();
+                String newMapsUrl      = txtGoogleMaps.getText().isBlank()   ? googleMapsUrl             : txtGoogleMaps.getText();
 
-                updatePetaLokasiKeDb(
-                        txtAlamat.getText(),
-                        txtJam.getText(),
-                        txtHari.getText(),
-                        txtGoogleMaps.getText()
-                );
+                lblMapAlamat.setText(newMapAlamat);
+                lblAlamat.setText(newAlamat);
+                lblJam.setText(newJam);
+                lblHari.setText(newHari);
+                lblPatokan.setText(newPatokan);
+                lblParkir.setText(newParkir);
+                lblParkirDetail.setText(newParkirDetail);
+                googleMapsUrl = newMapsUrl;
+
+                updatePetaLokasiKeDb(newAlamat, newJam, newHari, newMapsUrl,
+                        newPatokan, newParkir, newParkirDetail);
             }
         });
     }
 
-    private void updatePetaLokasiKeDb(String alamat, String jam, String hari, String mapsUrl) {
+    private void updatePetaLokasiKeDb(String alamat, String jam, String hari, String mapsUrl,
+                                      String patokan, String parkir, String parkirDetail) {
         try {
             String jamBuka = jam;
             String jamTutup = "";
@@ -176,7 +187,7 @@ public class LokasiController implements Initializable {
                 jamBuka = parts[0].trim();
                 jamTutup = parts[1].trim();
             } else if (jam.contains("-")) {
-                String[] parts = jam.split("-");
+                String[] parts = jam.split("-", 2);
                 jamBuka = parts[0].trim();
                 jamTutup = parts[1].trim();
             }
@@ -185,7 +196,8 @@ public class LokasiController implements Initializable {
 
             try (PreparedStatement ps = conn.prepareStatement(
                     "UPDATE informasi_kedai " +
-                            "SET alamat = ?, jam_buka = ?, jam_tutup = ?, hari_operasi = ?, maps_url = ? " +
+                            "SET alamat = ?, jam_buka = ?, jam_tutup = ?, hari_operasi = ?, maps_url = ?, " +
+                            "patokan = ?, parkir = ?, parkir_detail = ? " +
                             "WHERE id = 1")) {
 
                 ps.setString(1, alamat);
@@ -193,9 +205,12 @@ public class LokasiController implements Initializable {
                 ps.setString(3, jamTutup);
                 ps.setString(4, hari);
                 ps.setString(5, mapsUrl);
+                ps.setString(6, patokan);
+                ps.setString(7, parkir);
+                ps.setString(8, parkirDetail);
 
-                ps.executeUpdate();
-                System.out.println("✅ Peta lokasi berhasil disimpan ke database.");
+                int rows = ps.executeUpdate();
+                System.out.println("✅ Peta lokasi berhasil disimpan ke database. Rows updated: " + rows);
             }
 
         } catch (Exception e) {
@@ -232,15 +247,16 @@ public class LokasiController implements Initializable {
 
         dialog.showAndWait().ifPresent(result -> {
             if (result == ButtonType.OK) {
-                lblPhone.setText(txtPhone.getText());
-                lblEmail.setText(txtEmail.getText());
-                lblInstagram.setText(txtInstagram.getText());
+                // Kalau field dikosongkan, pakai nilai lama
+                String newPhone     = txtPhone.getText().isBlank()     ? lblPhone.getText()     : txtPhone.getText();
+                String newEmail     = txtEmail.getText().isBlank()     ? lblEmail.getText()     : txtEmail.getText();
+                String newInstagram = txtInstagram.getText().isBlank() ? lblInstagram.getText() : txtInstagram.getText();
 
-                updateKontakKeDb(
-                        txtPhone.getText(),
-                        txtEmail.getText(),
-                        txtInstagram.getText()
-                );
+                lblPhone.setText(newPhone);
+                lblEmail.setText(newEmail);
+                lblInstagram.setText(newInstagram);
+
+                updateKontakKeDb(newPhone, newEmail, newInstagram);
             }
         });
     }
