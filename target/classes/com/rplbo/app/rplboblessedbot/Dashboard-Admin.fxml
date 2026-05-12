@@ -159,7 +159,7 @@
                 <HBox spacing="16">
 
                     <!-- Manajemen Menu -->
-                    <VBox styleClass="card" spacing="12" HBox.hgrow="ALWAYS">
+                    <VBox styleClass="card" spacing="12" HBox.hgrow="ALWAYS" prefWidth="180" minWidth="160">
                         <Label text="Manajemen Menu" styleClass="card-title"/>
 
                         <Label fx:id="lblMenuCount"
@@ -175,7 +175,7 @@
                     </VBox>
 
                     <!-- Informasi Kedai -->
-                    <VBox styleClass="card" spacing="10" HBox.hgrow="ALWAYS">
+                    <VBox styleClass="card" spacing="10" HBox.hgrow="ALWAYS" prefWidth="340" minWidth="200">
                         <Label text="Informasi Kedai" styleClass="card-title"/>
 
                         <Label text="Jam Operasional" styleClass="card-value"/>
