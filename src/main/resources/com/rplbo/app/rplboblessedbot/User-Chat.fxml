@@ -37,12 +37,6 @@
                    style="-fx-font-size:11px;"/>
         </VBox>
 
-        <!-- Label ini diupdate controller sesuai topik aktif -->
-        <Label fx:id="lblScreenTag"
-               text="User-Chat"
-               styleClass="badge-active"
-               style="-fx-font-size:11px;"/>
-
         <!-- Tombol keluar user -->
         <Button text="Keluar"
                 styleClass="btn-secondary"
