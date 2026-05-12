@@ -25,6 +25,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
 
 /**
@@ -367,9 +369,12 @@ public class ManajemenMenuController implements Initializable {
     private void logAktivitas(String keterangan) {
         try {
             Connection conn = DatabaseHelper.getConnection();
+            String waktu = LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO aktivitas_admin (admin_id, keterangan) VALUES (1, ?)")) {
+                    "INSERT INTO aktivitas_admin (admin_id, keterangan, waktu) VALUES (1, ?, ?)")) {
                 ps.setString(1, keterangan);
+                ps.setString(2, waktu);
                 ps.executeUpdate();
             }
         } catch (Exception e) {
