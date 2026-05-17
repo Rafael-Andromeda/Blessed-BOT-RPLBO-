@@ -195,60 +195,90 @@ public class UserChatController {
         String t = raw.toLowerCase().trim();
         t = t.replaceAll("[?!.,]", "");
 
-        // Sapaan
-        if (t.matches("(halo|halo|hai|hi|hey|selamat (pagi|siang|sore|malam)|assalamu|salam|permisi).*"))
+        // ── Sapaan ────────────────────────────────────────────────
+        // Harus di awal kalimat / kalimat pendek
+        if (t.matches("^(halo|hai|hi|hey|selamat (pagi|siang|sore|malam)|assalamu.*|salam|permisi)(\\s.*)?$"))
             return Intent.SAPAAN;
 
-        // Terima kasih
+        // ── Terima kasih ──────────────────────────────────────────
         if (t.matches(".*(makasih|terima kasih|thanks|thx|tq|thank you).*"))
             return Intent.TERIMA_KASIH;
 
-        // Bandingkan dua menu → "bedain A sama B", "apa bedanya A dan B", "A vs B"
-        if (t.matches(".*(beda(in|nya|)|bedain|vs|versus|disbanding|dibanding|lebih (enak|manis|pahit)|perbandingan).*(sama|dan|dengan|atau|&).*") ||
-            t.matches(".*(sama|dan|atau).*(beda(in|nya|)|vs|bedain).*"))
-            return Intent.BANDINGKAN_MENU;
-
-        // Harga spesifik → "harga latte berapa", "latte harganya"
-        if (t.matches(".*(harga|berapa|cost|bayar).*(nya|)|.*(nya) (harga|berapa).*") &&
-            findMenuInText(t) != null)
+        // ── Harga menu spesifik ───────────────────────────────────
+        // Harus ada nama menu yang dikenali, baru trigger
+        if (t.matches(".*(harga|berapa|cost).*(nya)?.*") && findMenuInText(t) != null)
             return Intent.HARGA_MENU;
 
-        // Cari menu spesifik → "ada latte ga", "jual v60", "punya americano"
-        if ((t.matches(".*(ada|jual|punya|tersedia|ada ga|ada gak|ngejual|sedia).+") ||
-             t.matches(".*(ga ada|gak ada|ga jual|tidak ada).+")) &&
-            findMenuInText(t) != null)
+        // ── Cari menu spesifik ────────────────────────────────────
+        // "ada latte ga", "jual v60", "punya americano" — harus ada nama menu yang dikenali
+        if (findMenuInText(t) != null &&
+            t.matches(".*(ada|jual|punya|tersedia|ada ga|ada gak|ngejual|sedia|ga ada|gak ada|ga jual|tidak ada).*"))
             return Intent.CARI_MENU;
 
-        // Rekomendasi dengan preferensi → "rekomen yang manis", "mau yang ga terlalu pahit"
-        if (t.matches(".*(rekomen|saranin|suggest|pilih|pilihkan|mau (yang|kopi)|coba (yang|kopi)|" +
-                        "ga terlalu|tidak terlalu|yang (manis|pahit|enak|creamy|dingin|panas|ringan|kuat|murah)|" +
-                        "cocok buat|buat sarapan|buat cemilan|cocok|enaknya).*"))
+        // ── Bandingkan dua menu ───────────────────────────────────
+        // Harus ada minimal 1 nama menu + kata kunci perbandingan
+        if (findTwoMenusInText(t).size() >= 2 &&
+            t.matches(".*(beda|bedain|vs|versus|dibanding|perbandingan|sama|lebih).*"))
+            return Intent.BANDINGKAN_MENU;
+        if (t.matches(".*(bedain|apa beda|bedanya|vs|versus).*(sama|dan|dengan|atau).*") &&
+            findMenuInText(t) != null)
+            return Intent.BANDINGKAN_MENU;
+
+        // ── Rekomendasi dengan preferensi ─────────────────────────
+        if (t.matches(".*(rekomen|saranin|suggest|pilihkan).*(kopi|minum|menu|minuman|makanan)?.*") ||
+            t.matches(".*(ga terlalu|tidak terlalu|yang ga|yang tidak) (pahit|manis|asam|panas|dingin).*") ||
+            t.matches(".*(kopi|menu|minuman) yang (manis|pahit|enak|creamy|dingin|panas|ringan|kuat|murah).*") ||
+            t.matches(".*(cocok buat|buat) (sarapan|cemilan|ngopi|kerja|santai).*") ||
+            t.matches(".*(mau|coba) kopi yang.*") ||
+            t.matches(".*(bingung|ga tau|gak tau|tidak tau|bingung) (mau )?(makan|minum|pesan|order|pilih).*") ||
+            t.matches(".*(makan|minum|pesan|order) apa (ya|yah|nih|ni)(\\s.*)?"))
             return Intent.REKOMENDASI_PREFERENSI;
 
-        // Rekomendasi hari ini
-        if (t.matches(".*(rekomendasi|rekomen|saran|pilihan hari|menu hari|hari ini|featured).*"))
+        // ── Rekomendasi hari ini ──────────────────────────────────
+        if (t.matches(".*(rekomendasi|rekomen).*(menu|kopi|minuman|makan)?.*") ||
+            t.matches(".*(menu|kopi) (hari ini|pilihan|unggulan|featured).*") ||
+            t.matches(".*(pilihan|featured) (menu|kopi) (hari ini)?.*"))
             return Intent.REKOMENDASI_HARI;
 
-        // Fasilitas spesifik → "ada wifi ga", "bisa bawa laptop", "ada colokan", "ada toilet"
-        if (t.matches(".*(wifi|wi.fi|internet|colokan|stop kontak|laptop|charge|parkir|" +
-                        "toilet|wc|mushola|ac|outdoor|indoor|private|smoking|rokok|hewan|anjing|kucing).*"))
+        // ── Fasilitas spesifik ────────────────────────────────────
+        // Kata kunci fasilitas sudah cukup spesifik, tidak perlu dikasih konteks tambahan
+        if (t.matches(".*(wifi|wi-fi|wi.fi|internet|colokan|stop kontak|laptop|charge|" +
+                        "toilet|wc|mushola|sholat|outdoor|indoor|private room|rokok|smoking|" +
+                        "hewan peliharaan|anjing|kucing).*"))
             return Intent.FASILITAS_SPESIFIK;
 
-        // Fasilitas umum
-        if (t.matches(".*(fasilitas|fitur|layanan|service).*"))
+        // "bisa bawa laptop", "ada parkir ga" — harus ada kata tanya/konfirmasi
+        if (t.matches(".*(bisa|ada|boleh|tersedia).*(parkir|motor|mobil|laptop|colokan|ac|wifi).*") ||
+            t.matches(".*(parkir|motor|mobil).*(ada|tersedia|gimana|dimana).*"))
+            return Intent.FASILITAS_SPESIFIK;
+
+        // ── Fasilitas umum ────────────────────────────────────────
+        if (t.matches(".*(fasilitas|fitur kedai|layanan kedai|service).*"))
             return Intent.FASILITAS;
 
-        // Jam operasional
-        if (t.matches(".*(jam|buka|tutup|operasional|waktu|kapan|berapa lama|sampai jam|dari jam).*"))
+        // ── Jam operasional ───────────────────────────────────────
+        // Harus dalam konteks buka/tutup/jam kedai, bukan jam umum
+        if (t.matches(".*(jam buka|jam tutup|buka jam|tutup jam|sampai jam berapa|" +
+                        "dari jam|jam operasional|jam berapa buka|jam berapa tutup|" +
+                        "masih buka|sudah tutup|kapan buka|kapan tutup).*"))
             return Intent.JAM_OPERASIONAL;
 
-        // Lokasi
-        if (t.matches(".*(lokasi|alamat|dimana|di mana|mana|tempat|maps|google maps|jalan|rute|arah).*"))
+        // ── Lokasi ────────────────────────────────────────────────
+        // Harus dalam konteks lokasi kedai, bukan lokasi umum
+        if (t.matches(".*(lokasi kedai|lokasi kopi|lokasi blessed|dimana kedai|dimana kafe|" +
+                        "alamat kedai|alamat kafe|google maps|maps kedai|" +
+                        "rute ke|arah ke|cara ke|gimana ke|akses ke).*") ||
+            t.matches(".*(kedai|kafe|blessed).*(dimana|alamat|lokasi|tempat|maps).*") ||
+            t.matches(".*(dimana|alamat|lokasi).*(kedai|kafe|blessed|kalian|kamu).*"))
             return Intent.LOKASI;
 
-        // Daftar menu / harga
-        if (t.matches(".*(menu|harga|kopi|minum|makan|pesan|beli|ada apa|tersedia|daftar|list|" +
-                        "apa aja|apa saja|semua menu|selain|lainnya|minuman|makanan).*"))
+        // ── Daftar menu / harga ───────────────────────────────────
+        // Harus eksplisit minta menu kedai, bukan sekadar menyebut kata "makan"/"minum"
+        if (t.matches(".*(menu (kedai|kopi|kalian|kamu|apa|aja|saja|nya)|" +
+                        "daftar menu|semua menu|list menu|ada menu apa|" +
+                        "minuman (apa|aja|saja)|makanan (apa|aja|saja)|" +
+                        "kopi (apa|aja|saja)|harga (menu|kopi|minuman)|" +
+                        "apa aja (yang|menu)|apa saja (yang|menu)).*"))
             return Intent.DAFTAR_MENU;
 
         return Intent.UNKNOWN;
@@ -390,14 +420,18 @@ public class UserChatController {
         updateScreenTag("User-Chat-Rekomendasi-Preferensi");
         List<String> preferensiList = detectPreferensi(text);
 
+        // Konteks "bingung mau makan/minum apa" → langsung rekomendasiin menu hari ini
+        boolean bingung = text.matches(".*(bingung|ga tau|gak tau|tidak tau).*(makan|minum|pesan|order|pilih).*") ||
+                          text.matches(".*(makan|minum|pesan|order) apa (ya|yah|nih|ni)(\\s.*)?");
+        if (bingung && preferensiList.isEmpty()) {
+            appendBotMessage("Tenang, biar BlessBot yang pilihkan! ☕ Ini rekomendasi terbaik hari ini:");
+            showRekomendasiMenuHariIni();
+            return;
+        }
+
         if (preferensiList.isEmpty()) {
-            // Tidak ada preferensi spesifik → fallback ke rekomendasi hari ini
-            appendBotMessage("Hmm, mau yang seperti apa kopinya? Biar saya kasih rekomendasi yang pas! ☕\n" +
-                             "Kamu bisa bilang misalnya:\n" +
-                             "• \"yang ga terlalu pahit\"\n" +
-                             "• \"yang manis dan creamy\"\n" +
-                             "• \"yang dingin-dingin\"\n" +
-                             "• \"yang cocok buat sarapan\"");
+            appendBotMessage("Mau yang seperti apa? Ceritain aja, misalnya:\n" +
+                             "\"yang ga terlalu pahit\", \"yang manis\", atau \"yang dingin\" 😊");
             return;
         }
 
@@ -728,24 +762,23 @@ public class UserChatController {
     // ── Unknown dengan Smart Suggest ─────────────────────────────
 
     private void showUnknown(String text) {
-        // Coba cek apakah ada nama menu di kalimat ini
+        // Hanya suggest menu kalau ada nama menu yang eksplisit disebut
+        // dan kalimatnya pendek (kemungkinan memang nanya menu itu)
         String[] menuData = findMenuInText(text);
-        if (menuData != null) {
-            appendBotMessage("Hmm, saya rasa kamu nanya soal \"" + menuData[0] + "\"? Ini infonya:");
+        if (menuData != null && text.split("\\s+").length <= 6) {
+            appendBotMessage("Hmm, kamu nanya soal \"" + menuData[0] + "\"? Ini infonya:");
             appendBotNode(buildMenuCard(menuData, false));
+            appendBotMessage("Kalau bukan itu yang dimaksud, bisa tanyain yang lain ya! 😊");
             return;
         }
 
-        // Tidak ketemu sama sekali
-        appendBotMessage("Maaf, saya belum ngerti maksud kamu 😅\n\n" +
-                         "Coba tanyakan tentang:\n" +
-                         "• 📋 Menu & Harga  — \"Tampilkan semua menu\"\n" +
-                         "• ☕ Cari menu     — \"Ada Latte ga?\"\n" +
-                         "• 💡 Rekomendasi   — \"Rekomendasiin kopi yang ga pahit\"\n" +
-                         "• ⚖️ Bandingkan    — \"Bedain Latte sama Cappuccino\"\n" +
-                         "• 📶 Fasilitas     — \"Ada wifi ga?\"\n" +
-                         "• 🕐 Jam buka      — \"Buka sampai jam berapa?\"\n" +
-                         "• 📍 Lokasi        — \"Dimana lokasi kedainya?\"");
+        // Kalimat tidak berkaitan dengan kedai
+        String[] responses = {
+            "Hehe, kayaknya itu di luar kemampuan saya 😅 Saya spesialis info " + namaKedai + " aja nih! Ada yang bisa saya bantu soal kedai?",
+            "Wah itu saya kurang tau 😄 Tapi kalau nanya soal menu, lokasi, atau fasilitas kedai — saya ahlinya!",
+            "Maaf, saya cuma tau soal " + namaKedai + " 🙏 Mau tanya soal menu atau info kedai lainnya?"
+        };
+        appendBotMessage(responses[new Random().nextInt(responses.length)]);
     }
 
     // ── Quick Button Handlers ─────────────────────────────────────
