@@ -11,7 +11,8 @@ import java.sql.Statement;
 import java.util.ResourceBundle;
 
 /**
- * Controller untuk Logout.fxml
+ * LogoutController
+ * ----------------
  * Baca email admin dan 4 aktivitas terakhir dari DB.
  * Setelah konfirmasi logout → kembali ke Welcome.fxml
  */
@@ -40,15 +41,12 @@ public class LogoutController implements Initializable {
     private void loadAdminData() {
         try {
             Connection conn = DatabaseHelper.getConnection();
-
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery("SELECT email FROM admin LIMIT 1")) {
-
                 if (rs.next()) {
                     lblAdminEmail.setText(rs.getString("email"));
                 }
             }
-
         } catch (Exception e) {
             System.err.println("Logout: gagal load admin — " + e.getMessage());
             lblAdminEmail.setText("admin@blessbot.id");
@@ -56,38 +54,30 @@ public class LogoutController implements Initializable {
     }
 
     private void loadAktivitasData() {
-        Label[] activityLabels = {
-                lblActivity1, lblActivity2, lblActivity3, lblActivity4
-        };
+        Label[] activityLabels = { lblActivity1, lblActivity2, lblActivity3, lblActivity4 };
+        Label[] timeLabels     = { lblTime1,     lblTime2,     lblTime3,     lblTime4     };
 
-        Label[] timeLabels = {
-                lblTime1, lblTime2, lblTime3, lblTime4
-        };
-
-        // Default dulu kalau data kurang dari 4
+        // Isi default dulu kalau data kurang dari 4
         for (int i = 0; i < activityLabels.length; i++) {
             if (activityLabels[i] != null) activityLabels[i].setText("-");
-            if (timeLabels[i] != null) timeLabels[i].setText("--.--");
+            if (timeLabels[i]     != null) timeLabels[i].setText("--.--");
         }
 
         try {
             Connection conn = DatabaseHelper.getConnection();
-
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
                          "SELECT keterangan, strftime('%H.%M', waktu) AS jam " +
-                                 "FROM aktivitas_admin " +
-                                 "ORDER BY id DESC LIMIT 4")) {
+                         "FROM aktivitas_admin " +
+                         "ORDER BY id DESC LIMIT 4")) {
 
                 int index = 0;
-
                 while (rs.next() && index < activityLabels.length) {
                     activityLabels[index].setText(rs.getString("keterangan"));
                     timeLabels[index].setText(rs.getString("jam"));
                     index++;
                 }
             }
-
         } catch (Exception e) {
             System.err.println("Logout: gagal load aktivitas — " + e.getMessage());
 
@@ -105,7 +95,7 @@ public class LogoutController implements Initializable {
         }
     }
 
-    // Aksi tombol
+    // ── Aksi Tombol ───────────────────────────────────────────────
 
     @FXML
     private void onConfirmLogout() {
@@ -118,7 +108,7 @@ public class LogoutController implements Initializable {
         Navigator.goTo(lblAdminEmail, "/com/rplbo/app/rplboblessedbot/Dashboard-Admin.fxml");
     }
 
-    // Navigasi Sidebar
+    // ── Navigasi Sidebar ──────────────────────────────────────────
 
     @FXML
     private void onDashboard() {

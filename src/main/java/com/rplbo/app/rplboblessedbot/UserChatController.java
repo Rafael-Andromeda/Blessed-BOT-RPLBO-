@@ -11,6 +11,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -21,7 +22,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.io.File;
 
 public class UserChatController {
 
@@ -32,8 +32,14 @@ public class UserChatController {
 
     private Map<String, List<String[]>> menuByKategori = new LinkedHashMap<>();
     private List<String[]> fasilitasList = new ArrayList<>();
-    private String jamBuka = "08:00", jamTutup = "22:00", hariOps = "Setiap Hari";
-    private String namaKedai = "Kedai Kopi Blessed", alamat = "", mapsUrl = "", patokan = "";
+
+    private String jamBuka   = "08:00";
+    private String jamTutup  = "22:00";
+    private String hariOps   = "Setiap Hari";
+    private String namaKedai = "Kedai Kopi Blessed";
+    private String alamat    = "";
+    private String mapsUrl   = "";
+    private String patokan   = "";
 
     @FXML
     public void initialize() {
@@ -53,8 +59,8 @@ public class UserChatController {
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
                          "SELECT k.nama_kategori, m.nama, m.deskripsi, m.harga, m.gambar_url " +
-                                 "FROM menu m JOIN kategori_menu k ON m.kategori_id = k.id " +
-                                 "WHERE m.tersedia = 1 ORDER BY k.urutan, m.id")) {
+                         "FROM menu m JOIN kategori_menu k ON m.kategori_id = k.id " +
+                         "WHERE m.tersedia = 1 ORDER BY k.urutan, m.id")) {
                 while (rs.next()) {
                     String kat = rs.getString("nama_kategori");
                     menuByKategori.computeIfAbsent(kat, x -> new ArrayList<>()).add(new String[]{
@@ -70,14 +76,14 @@ public class UserChatController {
                  ResultSet rs = st.executeQuery(
                          "SELECT icon, nama FROM fasilitas WHERE tersedia = 1")) {
                 while (rs.next()) {
-                    fasilitasList.add(new String[]{rs.getString("icon"), rs.getString("nama")});
+                    fasilitasList.add(new String[]{ rs.getString("icon"), rs.getString("nama") });
                 }
             }
 
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
                          "SELECT nama_kedai, jam_buka, jam_tutup, hari_operasi, alamat, maps_url, patokan " +
-                                 "FROM informasi_kedai LIMIT 1")) {
+                         "FROM informasi_kedai LIMIT 1")) {
                 if (rs.next()) {
                     namaKedai = rs.getString("nama_kedai");
                     jamBuka   = rs.getString("jam_buka");
@@ -100,29 +106,29 @@ public class UserChatController {
     private void loadFallbackData() {
         menuByKategori.clear();
         menuByKategori.put("Kopi Hitam", List.of(
-                new String[]{"Americano", "Espresso + air panas", "Rp18.000", null},
-                new String[]{"Long Black", "Espresso kuat & bold", "Rp20.000", null},
-                new String[]{"V60", "Pour-over filter coffee", "Rp22.000", null}
+                new String[]{ "Americano",  "Espresso + air panas",    "Rp18.000", null },
+                new String[]{ "Long Black", "Espresso kuat & bold",    "Rp20.000", null },
+                new String[]{ "V60",        "Pour-over filter coffee", "Rp22.000", null }
         ));
         menuByKategori.put("Kopi Susu", List.of(
-                new String[]{"Latte", "Espresso + susu lembut", "Rp25.000", null},
-                new String[]{"Cappuccino", "Espresso + foam tebal", "Rp23.000", null},
-                new String[]{"Flat White", "Double shot + microfoam", "Rp26.000", null}
+                new String[]{ "Latte",      "Espresso + susu lembut",   "Rp25.000", null },
+                new String[]{ "Cappuccino", "Espresso + foam tebal",    "Rp23.000", null },
+                new String[]{ "Flat White", "Double shot + microfoam",  "Rp26.000", null }
         ));
         menuByKategori.put("Kopi Gula", List.of(
-                new String[]{"Kopi Gula Aren", "Espresso + gula aren", "Rp24.000", null},
-                new String[]{"Es Kopi Susu", "Kopi susu dingin", "Rp22.000", null},
-                new String[]{"Dalgona Coffee", "Kopi kocok creamy", "Rp27.000", null}
+                new String[]{ "Kopi Gula Aren", "Espresso + gula aren", "Rp24.000", null },
+                new String[]{ "Es Kopi Susu",   "Kopi susu dingin",     "Rp22.000", null },
+                new String[]{ "Dalgona Coffee", "Kopi kocok creamy",    "Rp27.000", null }
         ));
         fasilitasList = List.of(
-                new String[]{"📶", "Free Wi-Fi"},
-                new String[]{"🚪", "Private Room"},
-                new String[]{"🚗", "Parkir Area"},
-                new String[]{"☂", "Outdoor"}
+                new String[]{ "📶", "Free Wi-Fi"   },
+                new String[]{ "🚪", "Private Room" },
+                new String[]{ "🚗", "Parkir Area"  },
+                new String[]{ "☂",  "Outdoor"      }
         );
-        mapsUrl = "https://maps.google.com/?q=Kedai+Kopi+Blessed+Jogja";
-        alamat = "Jl. Anggrek No.10, Jogja";
-        patokan = "Dekat Malioboro, 500m dari Stasiun";
+        mapsUrl  = "https://maps.google.com/?q=Kedai+Kopi+Blessed+Jogja";
+        alamat   = "Jl. Anggrek No.10, Jogja";
+        patokan  = "Dekat Malioboro, 500m dari Stasiun";
     }
 
     @FXML
@@ -145,19 +151,19 @@ public class UserChatController {
         try {
             Connection conn = DatabaseHelper.getConnection();
             conn.prepareStatement(
-                            "INSERT INTO chat_log (pesan_user, topik, balasan_bot) VALUES ('" +
-                                    pesan.replace("'", "''") + "','" + topik + "','" +
-                                    balasan.replace("'", "''") + "')")
+                    "INSERT INTO chat_log (pesan_user, topik, balasan_bot) VALUES ('" +
+                    pesan.replace("'", "''") + "','" + topik + "','" +
+                    balasan.replace("'", "''") + "')")
                     .executeUpdate();
         } catch (Exception e) {
             System.err.println("Gagal log chat: " + e.getMessage());
         }
     }
 
-    @FXML public void onMenuDanHarga()   { appendUserBubble("Menu & Harga");    showMenuDanHarga(); }
-    @FXML public void onFasilitas()      { appendUserBubble("Fasilitas");       showFasilitas();    }
-    @FXML public void onJamOperasional() { appendUserBubble("Jam Operasional"); showJamOperasional(); }
-    @FXML public void onLokasiKedai()    { appendUserBubble("Lokasi Kedai");    showLokasi();       }
+    @FXML public void onMenuDanHarga()   { appendUserBubble("Menu & Harga");    showMenuDanHarga();     }
+    @FXML public void onFasilitas()      { appendUserBubble("Fasilitas");       showFasilitas();        }
+    @FXML public void onJamOperasional() { appendUserBubble("Jam Operasional"); showJamOperasional();   }
+    @FXML public void onLokasiKedai()    { appendUserBubble("Lokasi Kedai");    showLokasi();           }
 
     @FXML
     private void onLogoutUser() {
@@ -201,7 +207,7 @@ public class UserChatController {
         VBox menuList = new VBox(8);
 
         List<String> kategoriList = new ArrayList<>(menuByKategori.keySet());
-        List<Button> tabButtons = new ArrayList<>();
+        List<Button> tabButtons   = new ArrayList<>();
 
         for (int i = 0; i < kategoriList.size(); i++) {
             String kat = kategoriList.get(i);
@@ -230,6 +236,7 @@ public class UserChatController {
     private void populateMenuList(VBox container, List<String[]> items) {
         container.getChildren().clear();
         if (items == null) return;
+
         for (String[] item : items) {
             HBox row = new HBox(12);
             row.getStyleClass().add("menu-item-row");
@@ -245,9 +252,9 @@ public class UserChatController {
             String imgUrl = (item.length > 3 && item[3] != null) ? item[3] : null;
             if (imgUrl != null && !imgUrl.isBlank()) {
                 try {
-                    File imgFile = new File("images/menu/" + imgUrl);
+                    File imgFile  = new File("images/menu/" + imgUrl);
                     String imageUri = imgFile.exists() ? imgFile.toURI().toString() : imgUrl;
-                    ImageView iv = new ImageView(new Image(imageUri, 56, 56, true, true, true));
+                    ImageView iv  = new ImageView(new Image(imageUri, 56, 56, true, true, true));
                     iv.setFitWidth(56);
                     iv.setFitHeight(56);
                     icon.getChildren().add(iv);
@@ -299,9 +306,9 @@ public class UserChatController {
             Connection conn = DatabaseHelper.getConnection();
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT m.nama, m.deskripsi, m.harga, r.catatan " +
-                            "FROM rekomendasi_menu r " +
-                            "JOIN menu m ON r.menu_id = m.id " +
-                            "WHERE r.hari = ?")) {
+                    "FROM rekomendasi_menu r " +
+                    "JOIN menu m ON r.menu_id = m.id " +
+                    "WHERE r.hari = ?")) {
                 ps.setString(1, hariIni);
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) {
@@ -319,23 +326,23 @@ public class UserChatController {
         appendBotMessage("☀ Rekomendasi Menu Hari Ini (" + hariIni + ")");
 
         if (namaMenu == null) {
-            appendBotMessage("Belum ada rekomendasi menu untuk hari " + hariIni + " ini. "
-                    + "Silakan tanyakan menu lainnya!");
+            appendBotMessage("Belum ada rekomendasi menu untuk hari " + hariIni + " ini. " +
+                    "Silakan tanyakan menu lainnya!");
             return;
         }
 
         VBox card = makeCard();
         card.setMaxWidth(370);
-        card.setStyle("-fx-background-color:#FFF3E0; -fx-background-radius:14;"
-                + "-fx-border-color:#C8956C; -fx-border-radius:14; -fx-border-width:1.5;"
-                + "-fx-padding:14 16 14 16;");
+        card.setStyle("-fx-background-color:#FFF3E0; -fx-background-radius:14;" +
+                      "-fx-border-color:#C8956C; -fx-border-radius:14; -fx-border-width:1.5;" +
+                      "-fx-padding:14 16 14 16;");
 
         HBox badgeRow = new HBox(6);
         badgeRow.setAlignment(Pos.CENTER_LEFT);
         Label badge = new Label("⭐  Pilihan Hari " + hariIni);
-        badge.setStyle("-fx-background-color:#C8956C; -fx-text-fill:white;"
-                + "-fx-background-radius:20; -fx-padding:3 10 3 10;"
-                + "-fx-font-size:11px; -fx-font-weight:bold;");
+        badge.setStyle("-fx-background-color:#C8956C; -fx-text-fill:white;" +
+                       "-fx-background-radius:20; -fx-padding:3 10 3 10;" +
+                       "-fx-font-size:11px; -fx-font-weight:bold;");
         badgeRow.getChildren().add(badge);
 
         HBox namaHargaRow = new HBox();
@@ -365,13 +372,14 @@ public class UserChatController {
 
             HBox catatanRow = new HBox(6);
             catatanRow.setAlignment(Pos.CENTER_LEFT);
+
             Label iconCatatan = new Label("💬");
             iconCatatan.setStyle("-fx-font-size:13px;");
             Label lblCatatan = new Label(catatan);
             lblCatatan.setStyle("-fx-font-size:12px; -fx-text-fill:#8B6347; -fx-font-style:italic;");
             lblCatatan.setWrapText(true);
-            catatanRow.getChildren().addAll(iconCatatan, lblCatatan);
 
+            catatanRow.getChildren().addAll(iconCatatan, lblCatatan);
             card.getChildren().addAll(divider, catatanRow);
         }
 
@@ -401,7 +409,7 @@ public class UserChatController {
 
             Label icon = new Label(f[0]);
             icon.setStyle("-fx-font-size:28px;");
-            Label lbl  = new Label(f[1]);
+            Label lbl = new Label(f[1]);
             lbl.getStyleClass().add("facility-card-text");
 
             card.getChildren().addAll(icon, lbl);
@@ -413,9 +421,9 @@ public class UserChatController {
             if (col > 1) { col = 0; row++; }
         }
 
-        ColumnConstraints cc = new ColumnConstraints();
-        cc.setPercentWidth(50);
+        ColumnConstraints cc  = new ColumnConstraints();
         ColumnConstraints cc2 = new ColumnConstraints();
+        cc.setPercentWidth(50);
         cc2.setPercentWidth(50);
         grid.getColumnConstraints().addAll(cc, cc2);
 
@@ -438,18 +446,21 @@ public class UserChatController {
 
         HBox jamRow = new HBox(14);
         jamRow.setAlignment(Pos.CENTER_LEFT);
+
         Label clock = new Label("🕐");
         clock.setStyle("-fx-font-size:24px;");
 
         HBox timeBox = new HBox(6);
         timeBox.setAlignment(Pos.CENTER_LEFT);
+
         Label jamLabel = new Label(jamBuka + " – " + jamTutup);
         jamLabel.setStyle("-fx-font-size:22px; -fx-font-weight:bold; -fx-text-fill:#3B2414;");
+
         Label hariLabel = new Label(hariOps);
         hariLabel.getStyleClass().add("label-muted");
         hariLabel.setStyle("-fx-font-size:13px; -fx-padding:6 0 0 0;");
-        timeBox.getChildren().addAll(jamLabel, hariLabel);
 
+        timeBox.getChildren().addAll(jamLabel, hariLabel);
         jamRow.getChildren().addAll(clock, timeBox);
         card.getChildren().addAll(header, divider, jamRow);
 
@@ -464,11 +475,13 @@ public class UserChatController {
         card.setMaxWidth(360);
         VBox.setMargin(card, new Insets(0));
 
-        // --- Baris Alamat ---
+        // Baris Alamat
         HBox alamatRow = new HBox(8);
         alamatRow.setAlignment(Pos.CENTER_LEFT);
+
         Label pin = new Label("📍");
         pin.setStyle("-fx-font-size:20px; -fx-text-fill:#C8956C;");
+
         VBox alamatInfo = new VBox(2);
         Label namaKedaiLbl = new Label("\"" + namaKedai + "\"");
         namaKedaiLbl.getStyleClass().add("label-subtitle");
@@ -478,12 +491,13 @@ public class UserChatController {
         alamatInfo.getChildren().addAll(namaKedaiLbl, alamatLbl);
         alamatRow.getChildren().addAll(pin, alamatInfo);
 
-        // --- Baris Patokan (dari DB, sinkron dengan admin) ---
+        // Baris Patokan (dari DB, sinkron dengan admin)
         HBox patokanRow = new HBox(8);
         patokanRow.setAlignment(Pos.CENTER_LEFT);
         if (patokan != null && !patokan.isBlank()) {
             Label flagIcon = new Label("🚩");
             flagIcon.setStyle("-fx-font-size:16px;");
+
             VBox patokanInfo = new VBox(1);
             Label patokanTitle = new Label("Patokan");
             patokanTitle.setStyle("-fx-font-size:11px; -fx-text-fill:#A07850; -fx-font-weight:bold;");
@@ -491,13 +505,15 @@ public class UserChatController {
             patokanLbl.setStyle("-fx-font-size:13px; -fx-text-fill:#3B2414;");
             patokanLbl.setWrapText(true);
             patokanInfo.getChildren().addAll(patokanTitle, patokanLbl);
+
             patokanRow.getChildren().addAll(flagIcon, patokanInfo);
         }
 
-        // --- Map Placeholder ---
+        // Map Placeholder
         StackPane mapBox = new StackPane();
         mapBox.getStyleClass().add("map-placeholder");
         mapBox.setPrefHeight(140);
+
         VBox mapContent = new VBox(6);
         mapContent.setAlignment(Pos.CENTER);
         Label mapEmoji = new Label("🗺");
@@ -507,7 +523,7 @@ public class UserChatController {
         mapContent.getChildren().addAll(mapEmoji, mapHint);
         mapBox.getChildren().add(mapContent);
 
-        // --- Tombol Google Maps ---
+        // Tombol Google Maps
         Button btnMaps = new Button("Buka di Google Maps");
         btnMaps.getStyleClass().add("btn-secondary");
         btnMaps.setMaxWidth(Double.MAX_VALUE);
@@ -531,20 +547,22 @@ public class UserChatController {
     }
 
     private void showUnknown() {
-        appendBotMessage("Maaf, saya belum memahami pertanyaan itu. "
-                + "Coba tanyakan tentang Menu & Harga, Fasilitas, Jam Operasional, atau Lokasi kami ya!");
+        appendBotMessage("Maaf, saya belum memahami pertanyaan itu. " +
+                "Coba tanyakan tentang Menu & Harga, Fasilitas, Jam Operasional, atau Lokasi kami ya!");
     }
+
+    // ── Bubble & Node Helpers ─────────────────────────────────────
 
     private void appendUserBubble(String text) {
         HBox wrap = new HBox();
         wrap.setAlignment(Pos.CENTER_RIGHT);
         Label bubble = new Label(text);
         bubble.getStyleClass().add("chat-bubble-user");
-        bubble.setStyle("-fx-font-size:14px; -fx-text-fill:#3B2414;"
-                + "-fx-background-color:#E0D5C8;"
-                + "-fx-background-radius:16 2 16 16;"
-                + "-fx-padding:10 14 10 14;"
-                + "-fx-max-width:280px;");
+        bubble.setStyle("-fx-font-size:14px; -fx-text-fill:#3B2414;" +
+                        "-fx-background-color:#E0D5C8;" +
+                        "-fx-background-radius:16 2 16 16;" +
+                        "-fx-padding:10 14 10 14;" +
+                        "-fx-max-width:280px;");
         bubble.setWrapText(true);
         wrap.getChildren().add(bubble);
         chatContainer.getChildren().add(wrap);
@@ -574,6 +592,8 @@ public class UserChatController {
         chatContainer.getChildren().add(wrap);
         scrollToBottom();
     }
+
+    // ── UI Helpers ────────────────────────────────────────────────
 
     private void updateScreenTag(String screenName) {
         if (lblScreenTag != null) lblScreenTag.setText(screenName);

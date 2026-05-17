@@ -16,11 +16,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
 
 /**
- * Controller untuk Dashboard-Admin.fxml
- * Menampilkan:
+ * DashboardAdminController
+ * ------------------------
+ * Controller untuk Dashboard-Admin.fxml. Menampilkan:
  *  - Jumlah menu dari DB (update otomatis)
  *  - Jam operasional & alamat dari DB
  *  - Aktivitas login terakhir dari tabel login_log
+ *  - Preview rekomendasi menu per hari
  */
 public class DashboardAdminController implements Initializable {
 
@@ -59,9 +61,8 @@ public class DashboardAdminController implements Initializable {
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
                          "SELECT COUNT(*) AS total FROM menu WHERE tersedia = 1")) {
-                if (rs.next()) {
-                    if (lblMenuCount != null)
-                        lblMenuCount.setText(String.valueOf(rs.getInt("total")));
+                if (rs.next() && lblMenuCount != null) {
+                    lblMenuCount.setText(String.valueOf(rs.getInt("total")));
                 }
             }
         } catch (Exception e) {
@@ -95,7 +96,7 @@ public class DashboardAdminController implements Initializable {
     // ── Load aktivitas login terakhir ─────────────────────────────
 
     private void loadLoginLog() {
-        Label[] labels = {lblLogin1, lblLogin2, lblLogin3, lblLogin4};
+        Label[] labels = { lblLogin1, lblLogin2, lblLogin3, lblLogin4 };
 
         try {
             Connection conn = DatabaseHelper.getConnection();
@@ -130,9 +131,9 @@ public class DashboardAdminController implements Initializable {
                 return jam + " hari ini";
             }
 
-            String[] namaHari  = {"", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"};
-            String[] namaBulan = {"", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
-                    "Jul", "Agu", "Sep", "Okt", "Nov", "Des"};
+            String[] namaHari  = { "", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu" };
+            String[] namaBulan = { "", "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+                                       "Jul", "Agu", "Sep", "Okt", "Nov", "Des" };
 
             String hari = namaHari[waktu.getDayOfWeek().getValue()];
             String tgl  = waktu.getDayOfMonth() + " " + namaBulan[waktu.getMonthValue()];
@@ -141,38 +142,6 @@ public class DashboardAdminController implements Initializable {
         } catch (Exception e) {
             return waktuStr;
         }
-    }
-
-    @FXML private void onDashboard() { /* tetap di sini */ }
-
-    @FXML
-    private void onEditMenu() {
-        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Manajemen-Menu.fxml");
-    }
-
-    @FXML
-    private void onRekomendasiMenu() {
-        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Kelola-Rekomendasi-Menu.fxml");
-    }
-
-    @FXML
-    private void onLokasi() {
-        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Lokasi.fxml");
-    }
-
-    @FXML
-    private void onLogout() {
-        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Logout.fxml");
-    }
-
-    @FXML
-    private void onTambahMenu() {
-        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Manajemen-Menu.fxml");
-    }
-
-    @FXML
-    private void onEditInfo() {
-        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Informasi.fxml");
     }
 
     // ── Load preview rekomendasi menu ─────────────────────────────
@@ -195,6 +164,7 @@ public class DashboardAdminController implements Initializable {
                  ResultSet rs = st.executeQuery(sql)) {
 
                 boolean ada = false;
+
                 while (rs.next()) {
                     ada = true;
                     String hari     = rs.getString("hari");
@@ -202,7 +172,7 @@ public class DashboardAdminController implements Initializable {
                     int    harga    = rs.getInt("harga");
                     String catatan  = rs.getString("catatan");
 
-                    String hargaFmt = "Rp" + String.format("%,.0f", (double) harga).replace(",", ".");
+                    String hargaFmt    = "Rp" + String.format("%,.0f", (double) harga).replace(",", ".");
                     String catatanTeks = (catatan != null && !catatan.isBlank()) ? " · " + catatan : "";
 
                     HBox row = new HBox(10);
@@ -237,5 +207,39 @@ public class DashboardAdminController implements Initializable {
             err.setStyle("-fx-font-size:13px; -fx-text-fill:#E05555;");
             rekomendasiPreviewBox.getChildren().add(err);
         }
+    }
+
+    // ── Navigasi Sidebar ──────────────────────────────────────────
+
+    @FXML private void onDashboard() { /* tetap di sini */ }
+
+    @FXML
+    private void onEditMenu() {
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Manajemen-Menu.fxml");
+    }
+
+    @FXML
+    private void onRekomendasiMenu() {
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Kelola-Rekomendasi-Menu.fxml");
+    }
+
+    @FXML
+    private void onLokasi() {
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Lokasi.fxml");
+    }
+
+    @FXML
+    private void onLogout() {
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Logout.fxml");
+    }
+
+    @FXML
+    private void onTambahMenu() {
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Manajemen-Menu.fxml");
+    }
+
+    @FXML
+    private void onEditInfo() {
+        Navigator.goTo(lblMenuCount, "/com/rplbo/app/rplboblessedbot/Informasi.fxml");
     }
 }

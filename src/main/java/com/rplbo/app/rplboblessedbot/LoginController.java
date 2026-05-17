@@ -57,6 +57,7 @@ public class LoginController implements Initializable {
                         // Catat waktu login ke login_log
                         String waktu = LocalDateTime.now()
                                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
                         try (PreparedStatement psLog = conn.prepareStatement(
                                 "INSERT INTO login_log (admin_id, waktu) VALUES (?, ?)")) {
                             psLog.setInt(1, adminId);
@@ -67,7 +68,6 @@ public class LoginController implements Initializable {
                         System.out.println("✅ Login berhasil: " + username);
                         Navigator.goTo(txtUsername,
                                 "/com/rplbo/app/rplboblessedbot/Dashboard-Admin.fxml");
-
                     } else {
                         showError("Username atau password salah.");
                     }

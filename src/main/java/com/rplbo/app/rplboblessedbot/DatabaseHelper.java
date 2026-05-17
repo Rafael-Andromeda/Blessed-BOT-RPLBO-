@@ -1,10 +1,10 @@
 package com.rplbo.app.rplboblessedbot;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  * DatabaseHelper
@@ -13,7 +13,7 @@ import java.nio.file.Paths;
  *
  * File DB dicari di:
  *   1. Folder yang sama dengan JAR / working directory  →  ./blessbot.db
- *   2. Fallback: src/main/resources (saat development di IDE)
+ *   2. Fallback: folder project root (saat development di IDE)
  *
  * Cara pakai:
  *   Connection conn = DatabaseHelper.getConnection();
@@ -27,7 +27,6 @@ public class DatabaseHelper {
 
     public static Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
-
             String url = resolveDbUrl();
 
             try {
@@ -48,20 +47,16 @@ public class DatabaseHelper {
     }
 
     private static String resolveDbUrl() {
-
         // Cari di working directory
         Path workDir = Paths.get(System.getProperty("user.dir"), DB_FILENAME);
-
         if (workDir.toFile().exists()) {
             return "jdbc:sqlite:" + workDir.toAbsolutePath();
         }
 
         // Fallback: cari di folder project root
         Path projectRoot = Paths.get(System.getProperty("user.dir")).getParent();
-
         if (projectRoot != null) {
             Path candidate = projectRoot.resolve(DB_FILENAME);
-
             if (candidate.toFile().exists()) {
                 return "jdbc:sqlite:" + candidate.toAbsolutePath();
             }

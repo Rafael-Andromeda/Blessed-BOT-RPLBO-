@@ -11,6 +11,7 @@ import javafx.stage.Stage;
  * ------------------
  * Entry point utama aplikasi BlessedBot (JavaFX).
  * Membuka Welcome.fxml sebagai halaman awal.
+ *
  * User memilih:
  *   - Masuk sebagai User  → langsung ke User-Chat.fxml
  *   - Masuk sebagai Admin → ke Login.fxml → Dashboard-Admin.fxml

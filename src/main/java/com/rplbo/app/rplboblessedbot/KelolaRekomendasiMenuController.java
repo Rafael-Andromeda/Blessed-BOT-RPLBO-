@@ -32,23 +32,23 @@ import java.util.ResourceBundle;
  */
 public class KelolaRekomendasiMenuController implements Initializable {
 
-    // ── FXML Bindings ─────────────────────────────────────────────────────────
+    // ── FXML Bindings ─────────────────────────────────────────────
 
-    @FXML private ComboBox<String>          cbHari;
-    @FXML private ComboBox<MenuItem>        cbMenu;
-    @FXML private TextField                 tfCatatan;
-    @FXML private Button                    btnSimpan;
-    @FXML private Button                    btnBatal;
-    @FXML private Label                     lblStatus;
+    @FXML private ComboBox<String>              cbHari;
+    @FXML private ComboBox<MenuItem>            cbMenu;
+    @FXML private TextField                     tfCatatan;
+    @FXML private Button                        btnSimpan;
+    @FXML private Button                        btnBatal;
+    @FXML private Label                         lblStatus;
 
-    @FXML private TableView<RekomendasiRow>         rekomendasiTable;
-    @FXML private TableColumn<RekomendasiRow, String> colHari;
-    @FXML private TableColumn<RekomendasiRow, String> colNamaMenu;
-    @FXML private TableColumn<RekomendasiRow, String> colHarga;
-    @FXML private TableColumn<RekomendasiRow, String> colCatatan;
-    @FXML private TableColumn<RekomendasiRow, String> colAksi;
+    @FXML private TableView<RekomendasiRow>               rekomendasiTable;
+    @FXML private TableColumn<RekomendasiRow, String>     colHari;
+    @FXML private TableColumn<RekomendasiRow, String>     colNamaMenu;
+    @FXML private TableColumn<RekomendasiRow, String>     colHarga;
+    @FXML private TableColumn<RekomendasiRow, String>     colCatatan;
+    @FXML private TableColumn<RekomendasiRow, String>     colAksi;
 
-    // ── State ─────────────────────────────────────────────────────────────────
+    // ── State ─────────────────────────────────────────────────────
 
     /** ID rekomendasi yang sedang diedit. -1 = mode tambah baru. */
     private int editingId = -1;
@@ -60,7 +60,7 @@ public class KelolaRekomendasiMenuController implements Initializable {
     private final ObservableList<RekomendasiRow> rekomendasiData =
             FXCollections.observableArrayList();
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // ── Lifecycle ─────────────────────────────────────────────────
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -70,13 +70,13 @@ public class KelolaRekomendasiMenuController implements Initializable {
         loadRekomendasiFromDb();
     }
 
-    // ── Setup ComboBox Hari ───────────────────────────────────────────────────
+    // ── Setup ComboBox Hari ───────────────────────────────────────
 
     private void setupHariComboBox() {
         cbHari.setItems(FXCollections.observableArrayList(HARI_LIST));
     }
 
-    // ── Load daftar Menu ke ComboBox ──────────────────────────────────────────
+    // ── Load daftar Menu ke ComboBox ──────────────────────────────
 
     private void loadMenuComboBox() {
         ObservableList<MenuItem> menuList = FXCollections.observableArrayList();
@@ -99,14 +99,12 @@ public class KelolaRekomendasiMenuController implements Initializable {
         cbMenu.setItems(menuList);
     }
 
-    // ── Setup Kolom Tabel ─────────────────────────────────────────────────────
+    // ── Setup Kolom Tabel ─────────────────────────────────────────
 
     private void setupTableColumns() {
-        colHari.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().hari()));
+        colHari.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().hari()));
 
-        colNamaMenu.setCellValueFactory(c ->
-                new SimpleStringProperty(c.getValue().namaMenu()));
+        colNamaMenu.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().namaMenu()));
 
         colHarga.setCellValueFactory(c ->
                 new SimpleStringProperty(
@@ -147,7 +145,7 @@ public class KelolaRekomendasiMenuController implements Initializable {
         rekomendasiTable.setItems(rekomendasiData);
     }
 
-    // ── Load Data dari DB ─────────────────────────────────────────────────────
+    // ── Load Data dari DB ─────────────────────────────────────────
 
     private void loadRekomendasiFromDb() {
         rekomendasiData.clear();
@@ -168,7 +166,6 @@ public class KelolaRekomendasiMenuController implements Initializable {
 
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(sql)) {
-
                 while (rs.next()) {
                     rekomendasiData.add(new RekomendasiRow(
                             rs.getInt("id"),
@@ -186,36 +183,31 @@ public class KelolaRekomendasiMenuController implements Initializable {
         }
     }
 
-    // ── Isi Form untuk Edit ───────────────────────────────────────────────────
+    // ── Isi Form untuk Edit ───────────────────────────────────────
 
     private void populateFormForEdit(RekomendasiRow row) {
         editingId = row.id();
 
-        // Set ComboBox Hari
         cbHari.setValue(row.hari());
 
-        // Set ComboBox Menu – cari item yang sesuai menu_id
         cbMenu.getItems().stream()
                 .filter(m -> m.id() == row.menuId())
                 .findFirst()
                 .ifPresent(cbMenu::setValue);
 
-        // Set catatan
         tfCatatan.setText(row.catatan() != null ? row.catatan() : "");
-
         btnSimpan.setText("💾  Update Rekomendasi");
         setStatus("Mode edit: " + row.hari() + " → " + row.namaMenu(), false);
     }
 
-    // ── Simpan / Update ───────────────────────────────────────────────────────
+    // ── Simpan / Update ───────────────────────────────────────────
 
     @FXML
     private void onSimpan() {
-        String hari    = cbHari.getValue();
-        MenuItem menu  = cbMenu.getValue();
-        String catatan = tfCatatan.getText().trim();
+        String   hari    = cbHari.getValue();
+        MenuItem menu    = cbMenu.getValue();
+        String   catatan = tfCatatan.getText().trim();
 
-        // Validasi input
         if (hari == null || hari.isBlank()) {
             setStatus("⚠ Pilih hari terlebih dahulu.", true);
             return;
@@ -229,7 +221,7 @@ public class KelolaRekomendasiMenuController implements Initializable {
             Connection conn = DatabaseHelper.getConnection();
 
             if (editingId == -1) {
-                // ── INSERT (atau REPLACE jika hari sudah ada) ──────────────
+                // INSERT (atau REPLACE jika hari sudah ada)
                 String sql = "INSERT INTO rekomendasi_menu (hari, menu_id, catatan) " +
                              "VALUES (?, ?, ?) " +
                              "ON CONFLICT(hari) DO UPDATE SET menu_id = excluded.menu_id, " +
@@ -244,7 +236,7 @@ public class KelolaRekomendasiMenuController implements Initializable {
                 System.out.println("✅ Rekomendasi disimpan: " + hari + " → " + menu.nama());
 
             } else {
-                // ── UPDATE berdasarkan ID ───────────────────────────────────
+                // UPDATE berdasarkan ID
                 String sql = "UPDATE rekomendasi_menu SET hari = ?, menu_id = ?, catatan = ? " +
                              "WHERE id = ?";
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -267,7 +259,7 @@ public class KelolaRekomendasiMenuController implements Initializable {
         }
     }
 
-    // ── Hapus Rekomendasi ─────────────────────────────────────────────────────
+    // ── Hapus Rekomendasi ─────────────────────────────────────────
 
     private void onHapusRekomendasi(RekomendasiRow row) {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
@@ -300,7 +292,7 @@ public class KelolaRekomendasiMenuController implements Initializable {
         });
     }
 
-    // ── Batal / Reset Form ────────────────────────────────────────────────────
+    // ── Batal / Reset Form ────────────────────────────────────────
 
     @FXML
     private void onBatal() {
@@ -316,7 +308,7 @@ public class KelolaRekomendasiMenuController implements Initializable {
         btnSimpan.setText("💾  Simpan Rekomendasi");
     }
 
-    // ── Refresh ───────────────────────────────────────────────────────────────
+    // ── Refresh ───────────────────────────────────────────────────
 
     @FXML
     private void onRefresh() {
@@ -325,7 +317,7 @@ public class KelolaRekomendasiMenuController implements Initializable {
         setStatus("Data diperbarui.", false);
     }
 
-    // ── Helper: tampilkan status ──────────────────────────────────────────────
+    // ── Helper: tampilkan status ──────────────────────────────────
 
     private void setStatus(String msg, boolean isError) {
         lblStatus.setText(msg);
@@ -334,39 +326,35 @@ public class KelolaRekomendasiMenuController implements Initializable {
                 : "-fx-text-fill:#5C3D2E; -fx-font-size:13px;");
     }
 
-    // ── Navigasi Sidebar ──────────────────────────────────────────────────────
+    // ── Navigasi Sidebar ──────────────────────────────────────────
 
     @FXML private void onDashboard() {
-        Navigator.goTo(rekomendasiTable,
-                "/com/rplbo/app/rplboblessedbot/Dashboard-Admin.fxml");
+        Navigator.goTo(rekomendasiTable, "/com/rplbo/app/rplboblessedbot/Dashboard-Admin.fxml");
     }
 
     @FXML private void onEditMenu() {
-        Navigator.goTo(rekomendasiTable,
-                "/com/rplbo/app/rplboblessedbot/Manajemen-Menu.fxml");
+        Navigator.goTo(rekomendasiTable, "/com/rplbo/app/rplboblessedbot/Manajemen-Menu.fxml");
     }
 
     @FXML private void onRekomendasiMenu() { /* tetap di sini */ }
 
     @FXML private void onLokasi() {
-        Navigator.goTo(rekomendasiTable,
-                "/com/rplbo/app/rplboblessedbot/Lokasi.fxml");
+        Navigator.goTo(rekomendasiTable, "/com/rplbo/app/rplboblessedbot/Lokasi.fxml");
     }
 
     @FXML private void onLogout() {
-        Navigator.goTo(rekomendasiTable,
-                "/com/rplbo/app/rplboblessedbot/Logout.fxml");
+        Navigator.goTo(rekomendasiTable, "/com/rplbo/app/rplboblessedbot/Logout.fxml");
     }
 
-    // ── Records (model data) ──────────────────────────────────────────────────
+    // ── Records (model data) ──────────────────────────────────────
 
     /** Baris data untuk TableView rekomendasi. */
     public record RekomendasiRow(
-            int id,
+            int    id,
             String hari,
-            int menuId,
+            int    menuId,
             String namaMenu,
-            int harga,
+            int    harga,
             String catatan
     ) {}
 

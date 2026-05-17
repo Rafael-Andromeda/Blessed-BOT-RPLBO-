@@ -13,8 +13,7 @@ public class WelcomeController implements Initializable {
     @FXML private Button btnAdmin;
 
     @Override
-    public void initialize(URL location, ResourceBundle resources) {
-    }
+    public void initialize(URL location, ResourceBundle resources) {}
 
     @FXML
     private void onMasukUser() {

@@ -35,7 +35,7 @@ public class ManajemenMenuController implements Initializable {
 
     private static final String IMAGE_DIR = "images/menu/";
 
-    @FXML private TableView<MenuRow> menuTable;
+    @FXML private TableView<MenuRow>          menuTable;
     @FXML private TableColumn<MenuRow, String> colFoto;
     @FXML private TableColumn<MenuRow, String> colNama;
     @FXML private TableColumn<MenuRow, String> colKategori;
@@ -75,21 +75,30 @@ public class ManajemenMenuController implements Initializable {
     private void setupColumns() {
         colFoto.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().gambar()));
         colFoto.setCellFactory(col -> new TableCell<>() {
-            private final ImageView imgView = new ImageView();
-            private final Label lblFallback = new Label("☕");
+            private final ImageView imgView    = new ImageView();
+            private final Label     lblFallback = new Label("☕");
+
             {
                 imgView.setFitWidth(56);
                 imgView.setFitHeight(56);
                 imgView.setPreserveRatio(true);
                 imgView.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 4, 0, 0, 1);");
             }
+
             @Override
             protected void updateItem(String gambar, boolean empty) {
                 super.updateItem(gambar, empty);
-                if (empty || gambar == null || gambar.isBlank()) { setGraphic(lblFallback); return; }
+                if (empty || gambar == null || gambar.isBlank()) {
+                    setGraphic(lblFallback);
+                    return;
+                }
                 File f = new File(IMAGE_DIR + gambar);
-                if (f.exists()) { imgView.setImage(new Image(f.toURI().toString(), true)); setGraphic(imgView); }
-                else { setGraphic(lblFallback); }
+                if (f.exists()) {
+                    imgView.setImage(new Image(f.toURI().toString(), true));
+                    setGraphic(imgView);
+                } else {
+                    setGraphic(lblFallback);
+                }
             }
         });
 
@@ -97,22 +106,26 @@ public class ManajemenMenuController implements Initializable {
 
         if (colKategori != null) {
             colKategori.setCellValueFactory(c ->
-                    new SimpleStringProperty(c.getValue().kategori() != null ? c.getValue().kategori() : "-"));
+                    new SimpleStringProperty(
+                            c.getValue().kategori() != null ? c.getValue().kategori() : "-"));
         }
 
         colHarga.setCellValueFactory(c ->
-                new SimpleStringProperty("Rp" + String.format("%,.0f", (double) c.getValue().harga())
-                        .replace(",", ".")));
+                new SimpleStringProperty(
+                        "Rp" + String.format("%,.0f", (double) c.getValue().harga())
+                                .replace(",", ".")));
 
         colAksi.setCellFactory(col -> new TableCell<>() {
             private final Button btnEdit  = new Button("✏");
             private final Button btnHapus = new Button("🗑");
+
             {
                 btnEdit.setStyle("-fx-cursor:hand;");
                 btnHapus.setStyle("-fx-cursor:hand; -fx-text-fill:red;");
-                btnEdit.setOnAction(e -> showEditMenuDialog(getTableView().getItems().get(getIndex())));
+                btnEdit.setOnAction(e  -> showEditMenuDialog(getTableView().getItems().get(getIndex())));
                 btnHapus.setOnAction(e -> onHapusMenu(getTableView().getItems().get(getIndex())));
             }
+
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
@@ -132,10 +145,10 @@ public class ManajemenMenuController implements Initializable {
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
                          "SELECT m.id, m.nama, m.deskripsi, m.harga, k.nama_kategori, m.gambar_url, m.kategori_id " +
-                                 "FROM menu m " +
-                                 "JOIN kategori_menu k ON m.kategori_id = k.id " +
-                                 "WHERE m.tersedia = 1 " +
-                                 "ORDER BY k.urutan, m.id")) {
+                         "FROM menu m " +
+                         "JOIN kategori_menu k ON m.kategori_id = k.id " +
+                         "WHERE m.tersedia = 1 " +
+                         "ORDER BY k.urutan, m.id")) {
                 while (rs.next()) {
                     menuData.add(new MenuRow(
                             rs.getInt("id"),
@@ -165,7 +178,8 @@ public class ManajemenMenuController implements Initializable {
 
     private String simpanGambar(File source) throws IOException {
         String namaFile = System.currentTimeMillis() + "_" + source.getName();
-        Files.copy(source.toPath(), new File(IMAGE_DIR + namaFile).toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(source.toPath(), new File(IMAGE_DIR + namaFile).toPath(),
+                StandardCopyOption.REPLACE_EXISTING);
         return namaFile;
     }
 
@@ -174,13 +188,16 @@ public class ManajemenMenuController implements Initializable {
     @FXML
     private void onTambahMenu() {
         List<KategoriItem> kategoriList = loadKategoriList();
-        if (kategoriList.isEmpty()) { showAlert("Tidak ada kategori di database."); return; }
+        if (kategoriList.isEmpty()) {
+            showAlert("Tidak ada kategori di database.");
+            return;
+        }
 
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Tambah Menu");
         dialog.setHeaderText("Isi data menu baru");
 
-        TextField tfNama  = new TextField();
+        TextField tfNama = new TextField();
         tfNama.setPromptText("Contoh: Americano");
 
         TextArea taDesk = new TextArea();
@@ -194,14 +211,19 @@ public class ManajemenMenuController implements Initializable {
         cbKategori.getSelectionModel().selectFirst();
         cbKategori.setMaxWidth(Double.MAX_VALUE);
 
-        Label  lblFoto = new Label("(belum ada foto)");
-        Button btnFoto = new Button("📷 Pilih Foto");
-        final String[] namaGambar = {null};
+        Label  lblFoto    = new Label("(belum ada foto)");
+        Button btnFoto    = new Button("📷 Pilih Foto");
+        final String[] namaGambar = { null };
+
         btnFoto.setOnAction(e -> {
             File f = pilihGambar();
             if (f != null) {
-                try { namaGambar[0] = simpanGambar(f); lblFoto.setText("✅ " + f.getName()); }
-                catch (IOException ex) { showAlert("Gagal simpan foto: " + ex.getMessage()); }
+                try {
+                    namaGambar[0] = simpanGambar(f);
+                    lblFoto.setText("✅ " + f.getName());
+                } catch (IOException ex) {
+                    showAlert("Gagal simpan foto: " + ex.getMessage());
+                }
             }
         });
 
@@ -224,9 +246,12 @@ public class ManajemenMenuController implements Initializable {
             KategoriItem kat = cbKategori.getValue();
             if (kat == null) { showAlert("Pilih kategori."); return; }
             try {
-                insertMenuToDb(nama, taDesk.getText().trim(), Integer.parseInt(tfHarga.getText().trim()), kat.id(), namaGambar[0]);
+                insertMenuToDb(nama, taDesk.getText().trim(),
+                        Integer.parseInt(tfHarga.getText().trim()), kat.id(), namaGambar[0]);
                 loadMenuFromDb();
-            } catch (NumberFormatException ex) { showAlert("Harga harus berupa angka."); }
+            } catch (NumberFormatException ex) {
+                showAlert("Harga harus berupa angka.");
+            }
         });
     }
 
@@ -243,7 +268,9 @@ public class ManajemenMenuController implements Initializable {
                 ps.executeUpdate();
                 logAktivitas("Tambah menu \"" + nama + "\"");
             }
-        } catch (Exception e) { System.err.println("Gagal tambah menu: " + e.getMessage()); }
+        } catch (Exception e) {
+            System.err.println("Gagal tambah menu: " + e.getMessage());
+        }
     }
 
     // ── Edit menu ─────────────────────────────────────────────────
@@ -257,30 +284,38 @@ public class ManajemenMenuController implements Initializable {
 
         TextField tfNama  = new TextField(row.nama());
         TextArea  taDesk  = new TextArea(row.deskripsi() != null ? row.deskripsi() : "");
-        taDesk.setPrefRowCount(3); taDesk.setWrapText(true);
+        taDesk.setPrefRowCount(3);
+        taDesk.setWrapText(true);
         TextField tfHarga = new TextField(String.valueOf(row.harga()));
 
         ComboBox<KategoriItem> cbKategori = new ComboBox<>(FXCollections.observableArrayList(kategoriList));
-        kategoriList.stream().filter(k -> k.id() == row.kategoriId()).findFirst()
+        kategoriList.stream()
+                .filter(k -> k.id() == row.kategoriId())
+                .findFirst()
                 .ifPresent(k -> cbKategori.getSelectionModel().select(k));
         cbKategori.setMaxWidth(Double.MAX_VALUE);
 
-        Label  lblFoto = new Label(row.gambar() != null ? "📷 " + row.gambar() : "(belum ada foto)");
-        Button btnFoto = new Button("📷 Ganti Foto");
-        final String[] namaGambar = {row.gambar()};
+        Label  lblFoto    = new Label(row.gambar() != null ? "📷 " + row.gambar() : "(belum ada foto)");
+        Button btnFoto    = new Button("📷 Ganti Foto");
+        final String[] namaGambar = { row.gambar() };
+
         btnFoto.setOnAction(e -> {
             File f = pilihGambar();
             if (f != null) {
-                try { namaGambar[0] = simpanGambar(f); lblFoto.setText("✅ " + f.getName()); }
-                catch (IOException ex) { showAlert("Gagal simpan foto: " + ex.getMessage()); }
+                try {
+                    namaGambar[0] = simpanGambar(f);
+                    lblFoto.setText("✅ " + f.getName());
+                } catch (IOException ex) {
+                    showAlert("Gagal simpan foto: " + ex.getMessage());
+                }
             }
         });
 
         GridPane grid = buildGrid();
-        grid.add(new Label("Kategori:"),   0, 0); grid.add(cbKategori, 1, 0);
-        grid.add(new Label("Nama Menu:"),  0, 1); grid.add(tfNama,     1, 1);
-        grid.add(new Label("Deskripsi:"),  0, 2); grid.add(taDesk,     1, 2);
-        grid.add(new Label("Harga (Rp):"), 0, 3); grid.add(tfHarga,    1, 3);
+        grid.add(new Label("Kategori:"),   0, 0); grid.add(cbKategori,              1, 0);
+        grid.add(new Label("Nama Menu:"),  0, 1); grid.add(tfNama,                  1, 1);
+        grid.add(new Label("Deskripsi:"),  0, 2); grid.add(taDesk,                  1, 2);
+        grid.add(new Label("Harga (Rp):"), 0, 3); grid.add(tfHarga,                 1, 3);
         grid.add(new Label("Foto:"),       0, 4); grid.add(new VBox(6, btnFoto, lblFoto), 1, 4);
 
         dialog.getDialogPane().setContent(grid);
@@ -294,13 +329,17 @@ public class ManajemenMenuController implements Initializable {
             KategoriItem kat = cbKategori.getValue();
             if (kat == null) { showAlert("Pilih kategori."); return; }
             try {
-                updateMenuInDb(row.id(), namaBaru, taDesk.getText().trim(), Integer.parseInt(tfHarga.getText().trim()), kat.id(), namaGambar[0]);
+                updateMenuInDb(row.id(), namaBaru, taDesk.getText().trim(),
+                        Integer.parseInt(tfHarga.getText().trim()), kat.id(), namaGambar[0]);
                 loadMenuFromDb();
-            } catch (NumberFormatException ex) { showAlert("Harga harus berupa angka."); }
+            } catch (NumberFormatException ex) {
+                showAlert("Harga harus berupa angka.");
+            }
         });
     }
 
-    private void updateMenuInDb(int id, String nama, String deskripsi, int harga, int kategoriId, String gambar) {
+    private void updateMenuInDb(int id, String nama, String deskripsi, int harga,
+                                int kategoriId, String gambar) {
         try {
             Connection conn = DatabaseHelper.getConnection();
             try (PreparedStatement ps = conn.prepareStatement(
@@ -314,7 +353,9 @@ public class ManajemenMenuController implements Initializable {
                 ps.executeUpdate();
                 logAktivitas("Edit menu \"" + nama + "\"");
             }
-        } catch (Exception e) { System.err.println("Gagal edit menu: " + e.getMessage()); }
+        } catch (Exception e) {
+            System.err.println("Gagal edit menu: " + e.getMessage());
+        }
     }
 
     // ── Hapus menu (soft delete) ───────────────────────────────────
@@ -323,19 +364,24 @@ public class ManajemenMenuController implements Initializable {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
                 "Hapus menu \"" + row.nama() + "\"?", ButtonType.YES, ButtonType.NO);
         confirm.setTitle("Hapus Menu");
-        confirm.showAndWait().ifPresent(btn -> { if (btn == ButtonType.YES) deleteMenuFromDb(row); });
+        confirm.showAndWait().ifPresent(btn -> {
+            if (btn == ButtonType.YES) deleteMenuFromDb(row);
+        });
     }
 
     private void deleteMenuFromDb(MenuRow row) {
         try {
             Connection conn = DatabaseHelper.getConnection();
-            try (PreparedStatement ps = conn.prepareStatement("UPDATE menu SET tersedia = 0 WHERE id = ?")) {
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE menu SET tersedia = 0 WHERE id = ?")) {
                 ps.setInt(1, row.id());
                 ps.executeUpdate();
                 logAktivitas("Hapus menu \"" + row.nama() + "\"");
                 loadMenuFromDb();
             }
-        } catch (Exception e) { System.err.println("Gagal hapus menu: " + e.getMessage()); }
+        } catch (Exception e) {
+            System.err.println("Gagal hapus menu: " + e.getMessage());
+        }
     }
 
     // ── Utility ──────────────────────────────────────────────────
@@ -345,15 +391,16 @@ public class ManajemenMenuController implements Initializable {
         grid.setHgap(12);
         grid.setVgap(10);
         grid.setPadding(new Insets(16));
+
         javafx.scene.layout.ColumnConstraints cc0 = new javafx.scene.layout.ColumnConstraints();
         cc0.setMinWidth(90);
         javafx.scene.layout.ColumnConstraints cc1 = new javafx.scene.layout.ColumnConstraints();
         cc1.setHgrow(javafx.scene.layout.Priority.ALWAYS);
         grid.getColumnConstraints().addAll(cc0, cc1);
+
         return grid;
     }
 
-    // ── Log aktivitas admin (waktu lokal WIB, bukan UTC) ──────────
     private void logAktivitas(String keterangan) {
         try {
             Connection conn = DatabaseHelper.getConnection();
