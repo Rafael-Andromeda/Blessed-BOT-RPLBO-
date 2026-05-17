@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="6326450b-22b3-45f3-be87-7b9717ac6c06" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Blessed-BOT-RPLBO-.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/jarRepositories.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/rplbo/app/rplboblessedbot/UserChatController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/rplbo/app/rplboblessedbot/UserChatController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/BlessedApplication.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/DashboardAdminController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/DatabaseHelper.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/InformasiController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/KelolaRekomendasiMenuController$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/KelolaRekomendasiMenuController$MenuItem.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/KelolaRekomendasiMenuController$RekomendasiRow.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/KelolaRekomendasiMenuController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/Launcher.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/LoginController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/LogoutController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/LokasiController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/ManajemenMenuController$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/ManajemenMenuController$2.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/ManajemenMenuController$3.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/ManajemenMenuController$KategoriItem.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/ManajemenMenuController$MenuRow.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/ManajemenMenuController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/Navigator.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/UserChatController$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/UserChatController$Intent.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/UserChatController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/rplbo/app/rplboblessedbot/WelcomeController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/module-info.class" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
+  <component name="ProjectId" id="3DpsPelFQHu9llVlBQklbaXeMXU" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.Launcher.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/ivana/OneDrive/Documents/SEMESTER 4/PROJECT NEW/Blessed-BOT-RPLBO-",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="Blessed-BOT-RPLBO-" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.30387.90" />
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.30387.90" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6326450b-22b3-45f3-be87-7b9717ac6c06" name="Changes" comment="" />
+      <created>1778990323072</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1778990323072</updated>
+      <workItem from="1778990324354" duration="1855000" />
+      <workItem from="1778993663455" duration="423000" />
+      <workItem from="1779012442950" duration="1862000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

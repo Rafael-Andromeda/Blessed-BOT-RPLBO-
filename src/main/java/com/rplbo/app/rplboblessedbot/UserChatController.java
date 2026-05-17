@@ -231,7 +231,11 @@ public class UserChatController {
             t.matches(".*(cocok buat|buat) (sarapan|cemilan|ngopi|kerja|santai).*") ||
             t.matches(".*(mau|coba) kopi yang.*") ||
             t.matches(".*(bingung|ga tau|gak tau|tidak tau|bingung) (mau )?(makan|minum|pesan|order|pilih).*") ||
-            t.matches(".*(makan|minum|pesan|order) apa (ya|yah|nih|ni)(\\s.*)?"))
+            t.matches(".*(makan|minum|pesan|order) apa (ya|yah|nih|ni)(\\s.*)?") ||
+            t.matches(".*(menu|kopi|minuman|makanan).*(paling|ter) *(enak|bagus|laris|populer|hits|rekomendasi|rekomen).*") ||
+            t.matches(".*(paling|ter) *(enak|bagus|laris|populer|hits).*(menu|kopi|minuman|makanan)?.*") ||
+            t.matches(".*(apa|mana).*(menu|kopi|minuman).*(enak|bagus|hits|populer|laris|terbaik|andalan).*") ||
+            t.matches(".*(menu|kopi).*(andalan|favorit|spesial|best seller|bestseller).*"))
             return Intent.REKOMENDASI_PREFERENSI;
 
         // ── Rekomendasi hari ini ──────────────────────────────────
@@ -423,8 +427,16 @@ public class UserChatController {
         // Konteks "bingung mau makan/minum apa" → langsung rekomendasiin menu hari ini
         boolean bingung = text.matches(".*(bingung|ga tau|gak tau|tidak tau).*(makan|minum|pesan|order|pilih).*") ||
                           text.matches(".*(makan|minum|pesan|order) apa (ya|yah|nih|ni)(\\s.*)?");
-        if (bingung && preferensiList.isEmpty()) {
-            appendBotMessage("Tenang, biar BlessBot yang pilihkan! ☕ Ini rekomendasi terbaik hari ini:");
+
+        // Konteks "menu paling enak/populer/andalan"
+        boolean tanyaTerbaik = text.matches(".*(paling|ter).*(enak|bagus|laris|populer|hits).*") ||
+                               text.matches(".*(apa|mana).*(menu|kopi).*(enak|bagus|hits|populer|andalan|terbaik).*") ||
+                               text.matches(".*(menu|kopi).*(andalan|favorit|spesial|best seller|bestseller).*");
+
+        if ((bingung || tanyaTerbaik) && preferensiList.isEmpty()) {
+            appendBotMessage(tanyaTerbaik
+                    ? "Menu andalan kami yang paling disukai pelanggan — ini rekomendasinya! ⭐"
+                    : "Tenang, biar BlessBot yang pilihkan! ☕ Ini rekomendasi terbaik hari ini:");
             showRekomendasiMenuHariIni();
             return;
         }
@@ -494,6 +506,74 @@ public class UserChatController {
 
     private void showCariMenu(String text) {
         updateScreenTag("User-Chat-Cari-Menu");
+
+        // Deteksi pola "selain X" → cari menu serupa tapi exclude menu yang disebut
+        boolean adaSelain = text.matches(".*(selain|kecuali|bukan) .+");
+        if (adaSelain) {
+            String[] excludeMenu = findMenuInText(text);
+            // Cari preferensi dari konteks (manis, pahit, dll)
+            List<String> preferensi = detectPreferensi(text);
+
+            // Kalau tidak ada preferensi spesifik, ambil dari kategori menu yang di-exclude
+            String kategoriExclude = (excludeMenu != null && excludeMenu.length > 4) ? excludeMenu[4] : null;
+
+            appendBotMessage("Selain " + (excludeMenu != null ? excludeMenu[0] : "itu") +
+                             ", ini alternatif yang bisa kamu coba: ☕");
+
+            VBox container = new VBox(10);
+            container.setMaxWidth(480);
+            int shown = 0;
+
+            // Kumpulkan kandidat: menu di kategori sama / preferensi sama, tapi bukan yang di-exclude
+            for (Map.Entry<String, String[]> e : menuMap.entrySet()) {
+                if (shown >= 3) break;
+                String[] data = e.getValue();
+                // Skip menu yang sama persis
+                if (excludeMenu != null && data[0].equalsIgnoreCase(excludeMenu[0])) continue;
+
+                boolean cocok = false;
+                // Cocok berdasarkan preferensi kalau ada
+                if (!preferensi.isEmpty()) {
+                    for (String pref : preferensi) {
+                        List<String> candidates = PREFERENSI_TAG.getOrDefault(pref, List.of());
+                        for (String c : candidates) {
+                            if (e.getKey().contains(c) || c.contains(e.getKey().split("\\s")[0])) {
+                                cocok = true;
+                                break;
+                            }
+                        }
+                        if (cocok) break;
+                    }
+                }
+                // Cocok berdasarkan kategori yang sama kalau tidak ada preferensi
+                if (!cocok && kategoriExclude != null && data.length > 4 &&
+                    kategoriExclude.equalsIgnoreCase(data[4])) {
+                    cocok = true;
+                }
+
+                if (cocok) {
+                    container.getChildren().add(buildMenuCard(data, shown == 0));
+                    shown++;
+                }
+            }
+
+            if (shown == 0) {
+                // Tidak ada yang cocok → tampilkan semua menu minus yang di-exclude
+                for (Map.Entry<String, String[]> e : menuMap.entrySet()) {
+                    if (shown >= 3) break;
+                    String[] data = e.getValue();
+                    if (excludeMenu != null && data[0].equalsIgnoreCase(excludeMenu[0])) continue;
+                    container.getChildren().add(buildMenuCard(data, shown == 0));
+                    shown++;
+                }
+            }
+
+            if (shown > 0) appendBotNode(container);
+            appendBotMessage("Mau lihat semua menu lengkap atau ada yang ditanyain lagi? 😊");
+            return;
+        }
+
+        // Alur normal: cari menu spesifik
         String[] menuData = findMenuInText(text);
 
         boolean tanyaAda = text.contains("ada") || text.contains("jual") ||
@@ -502,7 +582,6 @@ public class UserChatController {
                                 text.contains("tidak ada") || text.contains("ga jual");
 
         if (menuData == null) {
-            // Coba ekstrak kata yang dicari
             String[] stopwords = { "ada", "ga", "gak", "tidak", "apa", "yang", "kamu", "kalian",
                                    "jual", "punya", "tersedia", "menu", "mau", "minta" };
             String cleaned = text;
@@ -510,10 +589,10 @@ public class UserChatController {
             cleaned = cleaned.replaceAll("\\s+", " ").trim();
 
             if (!cleaned.isEmpty()) {
-                appendBotMessage("Hmm, saya belum nemu menu \"" + cleaned + "\" di daftar kami. 🤔\n" +
+                appendBotMessage("Hmm, saya belum nemu menu \"" + cleaned + "\" di daftar kami 🤔\n" +
                                  "Mau lihat menu lengkap yang kami punya?");
             } else {
-                appendBotMessage("Menu apa yang kamu cari? Bisa sebutin nama menunya biar saya bantu cek! 😊");
+                appendBotMessage("Menu apa yang kamu cari? Sebutin namanya ya, nanti saya bantu cek! 😊");
             }
             return;
         }
@@ -521,12 +600,11 @@ public class UserChatController {
         String nama = menuData[0];
 
         if (tanyaTidakAda) {
-            appendBotMessage("Ada kok! \"" + nama + "\" tersedia di menu kami 😊\n" +
-                             "Ini detailnya:");
+            appendBotMessage("Ada kok! \"" + nama + "\" tersedia di menu kami 😊");
         } else if (tanyaAda) {
             appendBotMessage("Ada! \"" + nama + "\" tersedia di " + namaKedai + " ✅");
         } else {
-            appendBotMessage("Ketemu! Ini info \"" + nama + "\":");
+            appendBotMessage("Ini info \"" + nama + "\":");
         }
 
         appendBotNode(buildMenuCard(menuData, true));
@@ -577,13 +655,30 @@ public class UserChatController {
         updateScreenTag("User-Chat-Bandingkan-Menu");
         List<String[]> dua = findTwoMenusInText(text);
 
+        // Validasi: kedua nama menu harus benar-benar disebut eksplisit di teks
+        // Cegah false-positive dari kata umum seperti "sandwich", "roti bakar" yang match banyak menu
+        if (dua.size() >= 2) {
+            String namaA = dua.get(0)[0].toLowerCase();
+            String namaB = dua.get(1)[0].toLowerCase();
+            // Kalau kedua menu tidak ada satupun kata uniknya yang disebut user → reject
+            boolean aDisebut = text.contains(namaA) ||
+                               Arrays.stream(namaA.split("\\s+"))
+                                     .anyMatch(w -> w.length() >= 4 && text.contains(w));
+            boolean bDisebut = text.contains(namaB) ||
+                               Arrays.stream(namaB.split("\\s+"))
+                                     .anyMatch(w -> w.length() >= 4 && text.contains(w));
+            if (!aDisebut || !bDisebut) dua = dua.subList(0, 0); // reset kalau tidak valid
+        }
+
         if (dua.size() < 2) {
-            if (dua.size() == 1) {
+            // Cek apakah user menyebut nama kategori/jenis, bukan nama menu spesifik
+            boolean sebut1Menu = dua.size() == 1;
+            if (sebut1Menu) {
                 appendBotMessage("Mau bandingin \"" + dua.get(0)[0] + "\" sama menu apa? " +
-                                 "Sebutin keduanya ya, misalnya:\n\"Bedain latte sama cappuccino apa?\"");
+                                 "Sebutin nama lengkapnya ya! 😊");
             } else {
-                appendBotMessage("Mau bandingin menu mana? Sebutin dua nama menu yang mau dibandingkan ya! 😊\n" +
-                                 "Contoh: \"Bedain Latte sama Cappuccino apa?\"");
+                appendBotMessage("Mau bandingin menu mana? Sebutin nama lengkap dua menu yang ingin dibandingkan ya! 😊\n" +
+                                 "Contoh: \"Bedain Latte sama Cappuccino\"");
             }
             return;
         }
@@ -596,7 +691,6 @@ public class UserChatController {
         HBox compareBox = new HBox(12);
         compareBox.setAlignment(Pos.TOP_CENTER);
         compareBox.setMaxWidth(520);
-
         compareBox.getChildren().addAll(
                 buildCompareCard(menuA, "#FFF8F0", "#C8956C"),
                 buildVsLabel(),
@@ -604,10 +698,7 @@ public class UserChatController {
         );
 
         appendBotNode(compareBox);
-
-        // Narasi perbedaan
-        String narasi = generateKomparasi(menuA, menuB);
-        appendBotMessage(narasi);
+        appendBotMessage(generateKomparasi(menuA, menuB));
     }
 
     private Node buildVsLabel() {
@@ -762,21 +853,62 @@ public class UserChatController {
     // ── Unknown dengan Smart Suggest ─────────────────────────────
 
     private void showUnknown(String text) {
-        // Hanya suggest menu kalau ada nama menu yang eksplisit disebut
-        // dan kalimatnya pendek (kemungkinan memang nanya menu itu)
+        // Nama menu tersebut disebut → tunjukkan info menu
         String[] menuData = findMenuInText(text);
         if (menuData != null && text.split("\\s+").length <= 6) {
-            appendBotMessage("Hmm, kamu nanya soal \"" + menuData[0] + "\"? Ini infonya:");
+            appendBotMessage("Ini info \"" + menuData[0] + "\" ya:");
             appendBotNode(buildMenuCard(menuData, false));
-            appendBotMessage("Kalau bukan itu yang dimaksud, bisa tanyain yang lain ya! 😊");
             return;
         }
 
-        // Kalimat tidak berkaitan dengan kedai
+        // Pertanyaan yang relevan soal kedai tapi belum ada handler-nya
+        if (text.matches(".*(ramai|rame|sepi|penuh|antri|waiting list|crowded|sibuk|banyak (orang|pengunjung|tamu)).*")) {
+            appendBotMessage("Untuk kondisi keramaian kedai saat ini, saya belum bisa cek secara real-time 😅\n" +
+                             "Lebih akurat kalau langsung hubungi kedai atau langsung datang aja! Biasanya " +
+                             (LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY ||
+                              LocalDate.now().getDayOfWeek() == DayOfWeek.SUNDAY
+                                 ? "weekend memang lebih ramai, disarankan datang agak pagi ya ☕"
+                                 : "weekday cenderung lebih santai dan nyaman ☕"));
+            return;
+        }
+
+        if (text.matches(".*(enak|bagus|rekomen|worth|worth it|recommended|layak).*")) {
+            appendBotMessage("Menurut saya sih worth it banget! ☕ " + namaKedai + " punya menu yang beragam " +
+                             "dengan suasana yang nyaman. Mau lihat menu andalan kami?");
+            return;
+        }
+
+        if (text.matches(".*(bayar|payment|transfer|qris|tunai|cash|kartu|debit|kredit|ovo|gopay|dana|shopeepay).*")) {
+            appendBotMessage("Untuk metode pembayaran yang diterima, lebih tepatnya langsung tanyain ke staf kedai ya 🙏 " +
+                             "Tapi umumnya kedai kopi modern sudah menerima QRIS, cash, dan transfer!");
+            return;
+        }
+
+        if (text.matches(".*(delivery|antar|ojol|gofood|grabfood|shopeefood|pesan online|order online).*")) {
+            appendBotMessage("Untuk layanan delivery, silakan cek di GoFood / GrabFood dengan keyword \"" +
+                             namaKedai + "\" ya! 🛵 Atau hubungi langsung kedai untuk info lebih lanjut.");
+            return;
+        }
+
+        if (text.matches(".*(diskon|promo|voucher|kupon|cashback|potongan|gratis|free|happy hour).*")) {
+            appendBotMessage("Wah, untuk info promo terkini saya belum update nih 😅 " +
+                             "Cek langsung Instagram atau hubungi kedai biar dapat info promo terbaru ya!");
+            return;
+        }
+
+        if (text.matches(".*(kolam|renang|bioskop|gym|hotel|mall|taman|wahana).*")) {
+            appendBotMessage("Hehe, itu bukan di sini 😄 " + namaKedai + " adalah kedai kopi, bukan " +
+                             text.replaceAll(".*(kolam|renang|bioskop|gym|hotel|mall|taman|wahana).*", "$1") +
+                             ". Tapi kopinya juara! ☕ Ada yang mau ditanyain soal kedai?");
+            return;
+        }
+
+        // Betul-betul tidak relevan → respons natural, tidak berulang
         String[] responses = {
-            "Hehe, kayaknya itu di luar kemampuan saya 😅 Saya spesialis info " + namaKedai + " aja nih! Ada yang bisa saya bantu soal kedai?",
-            "Wah itu saya kurang tau 😄 Tapi kalau nanya soal menu, lokasi, atau fasilitas kedai — saya ahlinya!",
-            "Maaf, saya cuma tau soal " + namaKedai + " 🙏 Mau tanya soal menu atau info kedai lainnya?"
+            "Wah itu di luar pengetahuan saya 😄 Saya cuma tau seputar " + namaKedai + " nih. Ada yang bisa saya bantu?",
+            "Hmm, kayaknya itu bukan bidang saya 😅 Kalau soal kopi, menu, atau kedai — saya siap bantu!",
+            "Itu saya kurang paham 🙏 Tapi kalau nanya soal kedai, saya ahlinya! Mau tanya apa?",
+            "Waduh, itu di luar jangkauan saya 😄 Fokus saya cuma seputar " + namaKedai + " aja nih!"
         };
         appendBotMessage(responses[new Random().nextInt(responses.length)]);
     }
