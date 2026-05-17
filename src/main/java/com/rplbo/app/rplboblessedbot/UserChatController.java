@@ -18,27 +18,21 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class UserChatController {
-
-    // ── FXML Bindings ─────────────────────────────────────────────
 
     @FXML private ScrollPane chatScrollPane;
     @FXML private VBox       chatContainer;
     @FXML private TextField  inputField;
     @FXML private Label      lblScreenTag;
 
-    // ── Data dari DB ──────────────────────────────────────────────
-
-    /** Semua menu: key = nama (lowercase), value = [nama, deskripsi, hargaStr, gambar_url, kategori] */
-    private final Map<String, String[]> menuMap       = new LinkedHashMap<>();
-    /** Menu dikelompokkan per kategori: key = nama kategori, value = list [nama, desk, harga, url] */
-    private final Map<String, List<String[]>> menuByKategori = new LinkedHashMap<>();
-    private final List<String[]> fasilitasList        = new ArrayList<>();
+    private Map<String, List<String[]>> menuByKategori = new LinkedHashMap<>();
+    private List<String[]> fasilitasList = new ArrayList<>();
 
     private String jamBuka   = "08:00";
     private String jamTutup  = "22:00";
@@ -48,57 +42,16 @@ public class UserChatController {
     private String mapsUrl   = "";
     private String patokan   = "";
 
-    // ── Intent Enum ───────────────────────────────────────────────
-
-    private enum Intent {
-        REKOMENDASI_HARI,       // rekomendasi menu hari ini
-        REKOMENDASI_PREFERENSI, // rekomendasiin yang manis/pahit/dingin/dll
-        CARI_MENU,              // ada menu X ga? / nyari nama menu
-        BANDINGKAN_MENU,        // bedain A sama B
-        HARGA_MENU,             // harga X berapa?
-        DAFTAR_MENU,            // lihat semua menu / menu & harga
-        FASILITAS,              // tanya fasilitas umum
-        FASILITAS_SPESIFIK,     // ada wifi? bisa bawa laptop?
-        JAM_OPERASIONAL,        // jam buka/tutup
-        LOKASI,                 // alamat / lokasi
-        SAPAAN,                 // halo, hi, selamat pagi
-        TERIMA_KASIH,           // makasih, thanks
-        UNKNOWN                 // tidak dikenali
-    }
-
-    // ── Tag rasa/sifat untuk rekomendasi preferensi ───────────────
-
-    private static final Map<String, List<String>> PREFERENSI_TAG = new LinkedHashMap<>();
-    static {
-        PREFERENSI_TAG.put("pahit",   List.of("espresso", "americano", "long black", "v60"));
-        PREFERENSI_TAG.put("kuat",    List.of("espresso", "long black", "v60"));
-        PREFERENSI_TAG.put("manis",   List.of("dalgona", "gula aren", "kopi susu", "latte", "cappuccino"));
-        PREFERENSI_TAG.put("creamy",  List.of("latte", "cappuccino", "flat white", "dalgona"));
-        PREFERENSI_TAG.put("dingin",  List.of("es kopi", "dalgona", "kopi susu", "gula aren"));
-        PREFERENSI_TAG.put("panas",   List.of("v60", "americano", "espresso", "long black"));
-        PREFERENSI_TAG.put("ringan",  List.of("latte", "flat white", "cappuccino", "americano"));
-        PREFERENSI_TAG.put("murah",   List.of("americano", "long black", "espresso", "kopi susu"));
-        PREFERENSI_TAG.put("premium", List.of("flat white", "v60", "dalgona", "cappuccino"));
-        PREFERENSI_TAG.put("susu",    List.of("latte", "cappuccino", "flat white", "kopi susu"));
-        PREFERENSI_TAG.put("filter",  List.of("v60", "americano", "long black"));
-        PREFERENSI_TAG.put("sarapan", List.of("sandwich telur", "pisang goreng", "kentang goreng", "americano", "latte"));
-        PREFERENSI_TAG.put("cemilan", List.of("pisang goreng", "kentang goreng", "robak", "sandwich"));
-        PREFERENSI_TAG.put("makan",   List.of("sandwich telur", "pisang goreng", "kentang goreng", "robak"));
-    }
-
-    // ── Lifecycle ─────────────────────────────────────────────────
-
     @FXML
     public void initialize() {
         loadAllDataFromDb();
 
+        // Auto-scroll setiap kali tinggi chatContainer berubah (termasuk saat gambar selesai dimuat)
         chatContainer.heightProperty().addListener((obs, oldH, newH) ->
                 chatScrollPane.setVvalue(1.0));
 
         javafx.application.Platform.runLater(this::showRekomendasiMenuHariIni);
     }
-
-    // ── Load data dari DB ─────────────────────────────────────────
 
     private void loadAllDataFromDb() {
         try {
@@ -107,20 +60,16 @@ public class UserChatController {
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
                          "SELECT k.nama_kategori, m.nama, m.deskripsi, m.harga, m.gambar_url " +
-                         "FROM menu m JOIN kategori_menu k ON m.kategori_id = k.id " +
-                         "WHERE m.tersedia = 1 ORDER BY k.urutan, m.id")) {
+                                 "FROM menu m JOIN kategori_menu k ON m.kategori_id = k.id " +
+                                 "WHERE m.tersedia = 1 ORDER BY k.urutan, m.id")) {
                 while (rs.next()) {
-                    String kat      = rs.getString("nama_kategori");
-                    String nama     = rs.getString("nama");
-                    String desk     = rs.getString("deskripsi");
-                    String hargaStr = "Rp" + String.format("%,.0f", (double) rs.getInt("harga"))
-                                              .replace(",", ".");
-                    String gambar   = rs.getString("gambar_url");
-
-                    menuByKategori.computeIfAbsent(kat, x -> new ArrayList<>())
-                            .add(new String[]{ nama, desk, hargaStr, gambar });
-                    // menuMap: key lowercase untuk pencarian fuzzy
-                    menuMap.put(nama.toLowerCase(), new String[]{ nama, desk, hargaStr, gambar, kat });
+                    String kat = rs.getString("nama_kategori");
+                    menuByKategori.computeIfAbsent(kat, x -> new ArrayList<>()).add(new String[]{
+                            rs.getString("nama"),
+                            rs.getString("deskripsi"),
+                            "Rp" + String.format("%,.0f", (double) rs.getInt("harga")).replace(",", "."),
+                            rs.getString("gambar_url")
+                    });
                 }
             }
 
@@ -135,226 +84,53 @@ public class UserChatController {
             try (Statement st = conn.createStatement();
                  ResultSet rs = st.executeQuery(
                          "SELECT nama_kedai, jam_buka, jam_tutup, hari_operasi, alamat, maps_url, patokan " +
-                         "FROM informasi_kedai LIMIT 1")) {
+                                 "FROM informasi_kedai LIMIT 1")) {
                 if (rs.next()) {
-                    namaKedai        = rs.getString("nama_kedai");
-                    jamBuka          = rs.getString("jam_buka");
-                    jamTutup         = rs.getString("jam_tutup");
-                    hariOps          = rs.getString("hari_operasi");
-                    alamat           = rs.getString("alamat");
-                    mapsUrl          = rs.getString("maps_url");
+                    namaKedai = rs.getString("nama_kedai");
+                    jamBuka   = rs.getString("jam_buka");
+                    jamTutup  = rs.getString("jam_tutup");
+                    hariOps   = rs.getString("hari_operasi");
+                    alamat    = rs.getString("alamat");
+                    mapsUrl   = rs.getString("maps_url");
                     String dbPatokan = rs.getString("patokan");
                     patokan = (dbPatokan != null && !dbPatokan.isBlank()) ? dbPatokan : "";
                 }
             }
 
-            System.out.println("✅ UserChat: data berhasil dimuat dari DB (" + menuMap.size() + " menu)");
+            System.out.println("✅ UserChat: data berhasil dimuat dari DB");
         } catch (Exception e) {
-            System.err.println("UserChat: gagal load DB — " + e.getMessage());
+            System.err.println("UserChat: gagal load DB, pakai data statis — " + e.getMessage());
             loadFallbackData();
         }
     }
 
     private void loadFallbackData() {
-        String[][] fallback = {
-            { "Americano",     "Espresso + air panas",     "Rp18.000", null, "Kopi Hitam" },
-            { "Long Black",    "Espresso kuat & bold",     "Rp20.000", null, "Kopi Hitam" },
-            { "V60",           "Pour-over filter coffee",  "Rp22.000", null, "Kopi Hitam" },
-            { "Latte",         "Espresso + susu lembut",   "Rp25.000", null, "Kopi Susu"  },
-            { "Cappuccino",    "Espresso + foam tebal",    "Rp23.000", null, "Kopi Susu"  },
-            { "Flat White",    "Double shot + microfoam",  "Rp26.000", null, "Kopi Susu"  },
-            { "Kopi Gula Aren","Espresso + gula aren",     "Rp24.000", null, "Kopi Gula"  },
-            { "Es Kopi Susu",  "Kopi susu dingin segar",   "Rp22.000", null, "Kopi Gula"  },
-            { "Dalgona Coffee","Kopi kocok creamy",         "Rp27.000", null, "Kopi Gula"  },
-        };
-        for (String[] m : fallback) {
-            menuByKategori.computeIfAbsent(m[4], x -> new ArrayList<>())
-                    .add(new String[]{ m[0], m[1], m[2], m[3] });
-            menuMap.put(m[0].toLowerCase(), m);
-        }
-        fasilitasList.addAll(List.of(
-            new String[]{ "📶", "Free Wi-Fi" },
-            new String[]{ "🚪", "Private Room" },
-            new String[]{ "🚗", "Parkir Area" },
-            new String[]{ "☂",  "Outdoor" }
+        menuByKategori.clear();
+        menuByKategori.put("Kopi Hitam", List.of(
+                new String[]{ "Americano",  "Espresso + air panas",    "Rp18.000", null },
+                new String[]{ "Long Black", "Espresso kuat & bold",    "Rp20.000", null },
+                new String[]{ "V60",        "Pour-over filter coffee", "Rp22.000", null }
         ));
+        menuByKategori.put("Kopi Susu", List.of(
+                new String[]{ "Latte",      "Espresso + susu lembut",   "Rp25.000", null },
+                new String[]{ "Cappuccino", "Espresso + foam tebal",    "Rp23.000", null },
+                new String[]{ "Flat White", "Double shot + microfoam",  "Rp26.000", null }
+        ));
+        menuByKategori.put("Kopi Gula", List.of(
+                new String[]{ "Kopi Gula Aren", "Espresso + gula aren", "Rp24.000", null },
+                new String[]{ "Es Kopi Susu",   "Kopi susu dingin",     "Rp22.000", null },
+                new String[]{ "Dalgona Coffee", "Kopi kocok creamy",    "Rp27.000", null }
+        ));
+        fasilitasList = List.of(
+                new String[]{ "📶", "Free Wi-Fi"   },
+                new String[]{ "🚪", "Private Room" },
+                new String[]{ "🚗", "Parkir Area"  },
+                new String[]{ "☂",  "Outdoor"      }
+        );
         mapsUrl  = "https://maps.google.com/?q=Kedai+Kopi+Blessed+Jogja";
         alamat   = "Jl. Anggrek No.10, Jogja";
         patokan  = "Dekat Malioboro, 500m dari Stasiun";
     }
-
-    // ═════════════════════════════════════════════════════════════
-    //  INTENT DETECTION ENGINE
-    // ═════════════════════════════════════════════════════════════
-
-    /**
-     * Analisis kalimat user → tentukan intent utama.
-     * Urutan pengecekan dari yang paling spesifik ke paling umum.
-     */
-    private Intent detectIntent(String raw) {
-        String t = raw.toLowerCase().trim();
-        t = t.replaceAll("[?!.,]", "");
-
-        // ── Sapaan ────────────────────────────────────────────────
-        // Harus di awal kalimat / kalimat pendek
-        if (t.matches("^(halo|hai|hi|hey|selamat (pagi|siang|sore|malam)|assalamu.*|salam|permisi)(\\s.*)?$"))
-            return Intent.SAPAAN;
-
-        // ── Terima kasih ──────────────────────────────────────────
-        if (t.matches(".*(makasih|terima kasih|thanks|thx|tq|thank you).*"))
-            return Intent.TERIMA_KASIH;
-
-        // ── Harga menu spesifik ───────────────────────────────────
-        // Harus ada nama menu yang dikenali, baru trigger
-        if (t.matches(".*(harga|berapa|cost).*(nya)?.*") && findMenuInText(t) != null)
-            return Intent.HARGA_MENU;
-
-        // ── Cari menu spesifik ────────────────────────────────────
-        // "ada latte ga", "jual v60", "punya americano" — harus ada nama menu yang dikenali
-        if (findMenuInText(t) != null &&
-            t.matches(".*(ada|jual|punya|tersedia|ada ga|ada gak|ngejual|sedia|ga ada|gak ada|ga jual|tidak ada).*"))
-            return Intent.CARI_MENU;
-
-        // ── Bandingkan dua menu ───────────────────────────────────
-        // Harus ada minimal 1 nama menu + kata kunci perbandingan
-        if (findTwoMenusInText(t).size() >= 2 &&
-            t.matches(".*(beda|bedain|vs|versus|dibanding|perbandingan|sama|lebih).*"))
-            return Intent.BANDINGKAN_MENU;
-        if (t.matches(".*(bedain|apa beda|bedanya|vs|versus).*(sama|dan|dengan|atau).*") &&
-            findMenuInText(t) != null)
-            return Intent.BANDINGKAN_MENU;
-
-        // ── Rekomendasi dengan preferensi ─────────────────────────
-        if (t.matches(".*(rekomen|saranin|suggest|pilihkan).*(kopi|minum|menu|minuman|makanan)?.*") ||
-            t.matches(".*(ga terlalu|tidak terlalu|yang ga|yang tidak) (pahit|manis|asam|panas|dingin).*") ||
-            t.matches(".*(kopi|menu|minuman) yang (manis|pahit|enak|creamy|dingin|panas|ringan|kuat|murah).*") ||
-            t.matches(".*(cocok buat|buat) (sarapan|cemilan|ngopi|kerja|santai).*") ||
-            t.matches(".*(mau|coba) kopi yang.*") ||
-            t.matches(".*(bingung|ga tau|gak tau|tidak tau|bingung) (mau )?(makan|minum|pesan|order|pilih).*") ||
-            t.matches(".*(makan|minum|pesan|order) apa (ya|yah|nih|ni)(\\s.*)?") ||
-            t.matches(".*(menu|kopi|minuman|makanan).*(paling|ter) *(enak|bagus|laris|populer|hits|rekomendasi|rekomen).*") ||
-            t.matches(".*(paling|ter) *(enak|bagus|laris|populer|hits).*(menu|kopi|minuman|makanan)?.*") ||
-            t.matches(".*(apa|mana).*(menu|kopi|minuman).*(enak|bagus|hits|populer|laris|terbaik|andalan).*") ||
-            t.matches(".*(menu|kopi).*(andalan|favorit|spesial|best seller|bestseller).*"))
-            return Intent.REKOMENDASI_PREFERENSI;
-
-        // ── Rekomendasi hari ini ──────────────────────────────────
-        if (t.matches(".*(rekomendasi|rekomen).*(menu|kopi|minuman|makan)?.*") ||
-            t.matches(".*(menu|kopi) (hari ini|pilihan|unggulan|featured).*") ||
-            t.matches(".*(pilihan|featured) (menu|kopi) (hari ini)?.*"))
-            return Intent.REKOMENDASI_HARI;
-
-        // ── Fasilitas spesifik ────────────────────────────────────
-        // Kata kunci fasilitas sudah cukup spesifik, tidak perlu dikasih konteks tambahan
-        if (t.matches(".*(wifi|wi-fi|wi.fi|internet|colokan|stop kontak|laptop|charge|" +
-                        "toilet|wc|mushola|sholat|outdoor|indoor|private room|rokok|smoking|" +
-                        "hewan peliharaan|anjing|kucing).*"))
-            return Intent.FASILITAS_SPESIFIK;
-
-        // "bisa bawa laptop", "ada parkir ga" — harus ada kata tanya/konfirmasi
-        if (t.matches(".*(bisa|ada|boleh|tersedia).*(parkir|motor|mobil|laptop|colokan|ac|wifi).*") ||
-            t.matches(".*(parkir|motor|mobil).*(ada|tersedia|gimana|dimana).*"))
-            return Intent.FASILITAS_SPESIFIK;
-
-        // ── Fasilitas umum ────────────────────────────────────────
-        if (t.matches(".*(fasilitas|fitur kedai|layanan kedai|service).*"))
-            return Intent.FASILITAS;
-
-        // ── Jam operasional ───────────────────────────────────────
-        // Harus dalam konteks buka/tutup/jam kedai, bukan jam umum
-        if (t.matches(".*(jam buka|jam tutup|buka jam|tutup jam|sampai jam berapa|" +
-                        "dari jam|jam operasional|jam berapa buka|jam berapa tutup|" +
-                        "masih buka|sudah tutup|kapan buka|kapan tutup).*"))
-            return Intent.JAM_OPERASIONAL;
-
-        // ── Lokasi ────────────────────────────────────────────────
-        // Harus dalam konteks lokasi kedai, bukan lokasi umum
-        if (t.matches(".*(lokasi kedai|lokasi kopi|lokasi blessed|dimana kedai|dimana kafe|" +
-                        "alamat kedai|alamat kafe|google maps|maps kedai|" +
-                        "rute ke|arah ke|cara ke|gimana ke|akses ke).*") ||
-            t.matches(".*(kedai|kafe|blessed).*(dimana|alamat|lokasi|tempat|maps).*") ||
-            t.matches(".*(dimana|alamat|lokasi).*(kedai|kafe|blessed|kalian|kamu).*"))
-            return Intent.LOKASI;
-
-        // ── Daftar menu / harga ───────────────────────────────────
-        // Harus eksplisit minta menu kedai, bukan sekadar menyebut kata "makan"/"minum"
-        if (t.matches(".*(menu (kedai|kopi|kalian|kamu|apa|aja|saja|nya)|" +
-                        "daftar menu|semua menu|list menu|ada menu apa|" +
-                        "minuman (apa|aja|saja)|makanan (apa|aja|saja)|" +
-                        "kopi (apa|aja|saja)|harga (menu|kopi|minuman)|" +
-                        "apa aja (yang|menu)|apa saja (yang|menu)).*"))
-            return Intent.DAFTAR_MENU;
-
-        return Intent.UNKNOWN;
-    }
-
-    /**
-     * Cari nama menu yang disebut di dalam teks.
-     * Pakai fuzzy matching: cukup substring dari nama menu.
-     */
-    private String[] findMenuInText(String text) {
-        // Coba exact atau substring match dulu
-        for (Map.Entry<String, String[]> e : menuMap.entrySet()) {
-            if (text.contains(e.getKey())) return e.getValue();
-        }
-        // Coba per kata (min 4 huruf) dari nama menu
-        for (Map.Entry<String, String[]> e : menuMap.entrySet()) {
-            String[] parts = e.getKey().split("\\s+");
-            for (String part : parts) {
-                if (part.length() >= 4 && text.contains(part)) return e.getValue();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Cari DUA menu yang disebutkan dalam teks (untuk perbandingan).
-     */
-    private List<String[]> findTwoMenusInText(String text) {
-        List<String[]> found = new ArrayList<>();
-        Set<String> addedKeys = new HashSet<>();
-        for (Map.Entry<String, String[]> e : menuMap.entrySet()) {
-            if (text.contains(e.getKey()) && addedKeys.add(e.getKey())) {
-                found.add(e.getValue());
-                if (found.size() == 2) break;
-            }
-        }
-        // Kalau belum 2, coba per kata
-        if (found.size() < 2) {
-            for (Map.Entry<String, String[]> e : menuMap.entrySet()) {
-                if (addedKeys.contains(e.getKey())) continue;
-                String[] parts = e.getKey().split("\\s+");
-                for (String part : parts) {
-                    if (part.length() >= 4 && text.contains(part) && addedKeys.add(e.getKey())) {
-                        found.add(e.getValue());
-                        break;
-                    }
-                }
-                if (found.size() == 2) break;
-            }
-        }
-        return found;
-    }
-
-    /**
-     * Deteksi preferensi rasa dari teks → kembalikan daftar preferensi yang cocok.
-     */
-    private List<String> detectPreferensi(String text) {
-        List<String> result = new ArrayList<>();
-        for (String tag : PREFERENSI_TAG.keySet()) {
-            if (text.contains(tag)) result.add(tag);
-        }
-        // Alias tambahan
-        if (text.contains("tidak pahit") || text.contains("ga pahit") || text.contains("gak pahit"))
-            result.add("manis");
-        if (text.contains("tidak manis") || text.contains("ga manis") || text.contains("gak manis"))
-            result.add("pahit");
-        return result;
-    }
-
-    // ═════════════════════════════════════════════════════════════
-    //  ROUTING & RESPONSE
-    // ═════════════════════════════════════════════════════════════
 
     @FXML
     private void onSend() {
@@ -363,589 +139,585 @@ public class UserChatController {
         inputField.clear();
 
         appendUserBubble(text);
+        String topic = detectTopic(text.toLowerCase());
 
-        String textLower = text.toLowerCase().replaceAll("[?!.,]", "").trim();
-        Intent intent = detectIntent(textLower);
-
-        PauseTransition delay = new PauseTransition(Duration.millis(350));
-        delay.setOnFinished(e -> handleIntent(intent, textLower, text));
+        PauseTransition delay = new PauseTransition(Duration.millis(300));
+        delay.setOnFinished(e -> routeToTopic(topic));
         delay.play();
 
-        logChatToDb(text, intent.name());
+        logChatToDb(text, topic, "Bot membalas topik: " + topic);
     }
 
-    private void handleIntent(Intent intent, String textLower, String originalText) {
-        switch (intent) {
-            case SAPAAN               -> showSapaan();
-            case TERIMA_KASIH         -> showTerimaKasih();
-            case REKOMENDASI_HARI     -> showRekomendasiMenuHariIni();
-            case REKOMENDASI_PREFERENSI -> showRekomendasiPreferensi(textLower);
-            case CARI_MENU            -> showCariMenu(textLower);
-            case HARGA_MENU           -> showHargaMenu(textLower);
-            case BANDINGKAN_MENU      -> showBandingkanMenu(textLower);
-            case DAFTAR_MENU          -> showMenuDanHarga();
-            case FASILITAS            -> showFasilitas();
-            case FASILITAS_SPESIFIK   -> showFasilitasSpesifik(textLower);
-            case JAM_OPERASIONAL      -> showJamOperasional();
-            case LOKASI               -> showLokasi();
-            default                   -> showUnknown(textLower);
-        }
-    }
-
-    // ── Sapaan & Basa-basi ────────────────────────────────────────
-
-    private void showSapaan() {
-        String[] greetings = {
-            "Halo! 👋 Selamat datang di " + namaKedai + "!\n" +
-            "Saya BlessBot, asisten virtual kamu di sini. Mau tanya apa?\n" +
-            "Kamu bisa tanya soal menu, harga, fasilitas, jam buka, atau lokasi kami 😊",
-
-            "Hai! Seneng banget kamu mampir ke " + namaKedai + " ☕\n" +
-            "Ada yang bisa saya bantu? Mau lihat menu, rekomendasi kopi, atau info lainnya?",
-
-            "Selamat datang! Apa yang bisa BlessBot bantu hari ini? 🤗\n" +
-            "Bisa tanya menu & harga, rekomendasi, fasilitas, jam buka, atau lokasi ya!"
-        };
-        appendBotMessage(greetings[new Random().nextInt(greetings.length)]);
-    }
-
-    private void showTerimaKasih() {
-        String[] responses = {
-            "Sama-sama! Semoga kopinya enak ya ☕ Kalau ada yang mau ditanyain lagi, BlessBot siap!",
-            "Dengan senang hati! 😊 Ada yang bisa saya bantu lagi?",
-            "Siap! Selamat menikmati, semoga harimu menyenangkan 🌟"
-        };
-        appendBotMessage(responses[new Random().nextInt(responses.length)]);
-    }
-
-    // ── Rekomendasi Preferensi ────────────────────────────────────
-
-    private void showRekomendasiPreferensi(String text) {
-        updateScreenTag("User-Chat-Rekomendasi-Preferensi");
-        List<String> preferensiList = detectPreferensi(text);
-
-        // Konteks "bingung mau makan/minum apa" → langsung rekomendasiin menu hari ini
-        boolean bingung = text.matches(".*(bingung|ga tau|gak tau|tidak tau).*(makan|minum|pesan|order|pilih).*") ||
-                          text.matches(".*(makan|minum|pesan|order) apa (ya|yah|nih|ni)(\\s.*)?");
-
-        // Konteks "menu paling enak/populer/andalan"
-        boolean tanyaTerbaik = text.matches(".*(paling|ter).*(enak|bagus|laris|populer|hits).*") ||
-                               text.matches(".*(apa|mana).*(menu|kopi).*(enak|bagus|hits|populer|andalan|terbaik).*") ||
-                               text.matches(".*(menu|kopi).*(andalan|favorit|spesial|best seller|bestseller).*");
-
-        if ((bingung || tanyaTerbaik) && preferensiList.isEmpty()) {
-            appendBotMessage(tanyaTerbaik
-                    ? "Menu andalan kami yang paling disukai pelanggan — ini rekomendasinya! ⭐"
-                    : "Tenang, biar BlessBot yang pilihkan! ☕ Ini rekomendasi terbaik hari ini:");
-            showRekomendasiMenuHariIni();
-            return;
-        }
-
-        if (preferensiList.isEmpty()) {
-            appendBotMessage("Mau yang seperti apa? Ceritain aja, misalnya:\n" +
-                             "\"yang ga terlalu pahit\", \"yang manis\", atau \"yang dingin\" 😊");
-            return;
-        }
-
-        // Kumpulkan skor menu berdasarkan preferensi yang match
-        Map<String, Integer> skor = new LinkedHashMap<>();
-        for (String pref : preferensiList) {
-            List<String> candidates = PREFERENSI_TAG.getOrDefault(pref, List.of());
-            for (String candidate : candidates) {
-                // Cari menu yang namanya mengandung kata kandidat
-                for (String menuKey : menuMap.keySet()) {
-                    if (menuKey.contains(candidate) || candidate.contains(menuKey.split("\\s")[0])) {
-                        skor.merge(menuKey, 1, Integer::sum);
-                    }
-                }
-            }
-        }
-
-        if (skor.isEmpty()) {
-            appendBotMessage("Wah, belum ada menu yang cocok banget dengan preferensimu saat ini. " +
-                             "Tapi coba lihat semua menu dulu yuk — siapa tau ada yang menarik! 😊");
-            showMenuDanHarga();
-            return;
-        }
-
-        // Sort berdasarkan skor tertinggi
-        List<Map.Entry<String, Integer>> sorted = skor.entrySet().stream()
-                .sorted((a, b) -> b.getValue() - a.getValue())
-                .collect(Collectors.toList());
-
-        String prefText = preferensiList.stream()
-                .map(p -> "\"" + p + "\"")
-                .collect(Collectors.joining(", "));
-
-        appendBotMessage("Untuk yang " + prefText + ", ini rekomendasiku: ☕");
-
-        VBox container = new VBox(10);
-        container.setMaxWidth(480);
-
-        int shown = 0;
-        for (Map.Entry<String, Integer> entry : sorted) {
-            if (shown >= 3) break;
-            String[] menuData = menuMap.get(entry.getKey());
-            if (menuData == null) continue;
-
-            container.getChildren().add(buildMenuCard(menuData, shown == 0));
-            shown++;
-        }
-
-        if (shown > 0) {
-            appendBotNode(container);
-            if (shown == 1) {
-                appendBotMessage("Itu paling cocok menurutku! Mau tahu lebih detail atau lihat menu lainnya?");
-            } else {
-                appendBotMessage("Yang paling saya rekomendasiin adalah yang pertama! Tapi semuanya enak kok 😄");
-            }
-        }
-    }
-
-    // ── Cari Menu Spesifik ────────────────────────────────────────
-
-    private void showCariMenu(String text) {
-        updateScreenTag("User-Chat-Cari-Menu");
-
-        // Deteksi pola "selain X" → cari menu serupa tapi exclude menu yang disebut
-        boolean adaSelain = text.matches(".*(selain|kecuali|bukan) .+");
-        if (adaSelain) {
-            String[] excludeMenu = findMenuInText(text);
-            // Cari preferensi dari konteks (manis, pahit, dll)
-            List<String> preferensi = detectPreferensi(text);
-
-            // Kalau tidak ada preferensi spesifik, ambil dari kategori menu yang di-exclude
-            String kategoriExclude = (excludeMenu != null && excludeMenu.length > 4) ? excludeMenu[4] : null;
-
-            appendBotMessage("Selain " + (excludeMenu != null ? excludeMenu[0] : "itu") +
-                             ", ini alternatif yang bisa kamu coba: ☕");
-
-            VBox container = new VBox(10);
-            container.setMaxWidth(480);
-            int shown = 0;
-
-            // Kumpulkan kandidat: menu di kategori sama / preferensi sama, tapi bukan yang di-exclude
-            for (Map.Entry<String, String[]> e : menuMap.entrySet()) {
-                if (shown >= 3) break;
-                String[] data = e.getValue();
-                // Skip menu yang sama persis
-                if (excludeMenu != null && data[0].equalsIgnoreCase(excludeMenu[0])) continue;
-
-                boolean cocok = false;
-                // Cocok berdasarkan preferensi kalau ada
-                if (!preferensi.isEmpty()) {
-                    for (String pref : preferensi) {
-                        List<String> candidates = PREFERENSI_TAG.getOrDefault(pref, List.of());
-                        for (String c : candidates) {
-                            if (e.getKey().contains(c) || c.contains(e.getKey().split("\\s")[0])) {
-                                cocok = true;
-                                break;
-                            }
-                        }
-                        if (cocok) break;
-                    }
-                }
-                // Cocok berdasarkan kategori yang sama kalau tidak ada preferensi
-                if (!cocok && kategoriExclude != null && data.length > 4 &&
-                    kategoriExclude.equalsIgnoreCase(data[4])) {
-                    cocok = true;
-                }
-
-                if (cocok) {
-                    container.getChildren().add(buildMenuCard(data, shown == 0));
-                    shown++;
-                }
-            }
-
-            if (shown == 0) {
-                // Tidak ada yang cocok → tampilkan semua menu minus yang di-exclude
-                for (Map.Entry<String, String[]> e : menuMap.entrySet()) {
-                    if (shown >= 3) break;
-                    String[] data = e.getValue();
-                    if (excludeMenu != null && data[0].equalsIgnoreCase(excludeMenu[0])) continue;
-                    container.getChildren().add(buildMenuCard(data, shown == 0));
-                    shown++;
-                }
-            }
-
-            if (shown > 0) appendBotNode(container);
-            appendBotMessage("Mau lihat semua menu lengkap atau ada yang ditanyain lagi? 😊");
-            return;
-        }
-
-        // Alur normal: cari menu spesifik
-        String[] menuData = findMenuInText(text);
-
-        boolean tanyaAda = text.contains("ada") || text.contains("jual") ||
-                           text.contains("punya") || text.contains("tersedia") || text.contains("sedia");
-        boolean tanyaTidakAda = text.contains("ga ada") || text.contains("gak ada") ||
-                                text.contains("tidak ada") || text.contains("ga jual");
-
-        if (menuData == null) {
-            String[] stopwords = { "ada", "ga", "gak", "tidak", "apa", "yang", "kamu", "kalian",
-                                   "jual", "punya", "tersedia", "menu", "mau", "minta" };
-            String cleaned = text;
-            for (String sw : stopwords) cleaned = cleaned.replace(sw, "").trim();
-            cleaned = cleaned.replaceAll("\\s+", " ").trim();
-
-            if (!cleaned.isEmpty()) {
-                appendBotMessage("Hmm, saya belum nemu menu \"" + cleaned + "\" di daftar kami 🤔\n" +
-                                 "Mau lihat menu lengkap yang kami punya?");
-            } else {
-                appendBotMessage("Menu apa yang kamu cari? Sebutin namanya ya, nanti saya bantu cek! 😊");
-            }
-            return;
-        }
-
-        String nama = menuData[0];
-
-        if (tanyaTidakAda) {
-            appendBotMessage("Ada kok! \"" + nama + "\" tersedia di menu kami 😊");
-        } else if (tanyaAda) {
-            appendBotMessage("Ada! \"" + nama + "\" tersedia di " + namaKedai + " ✅");
-        } else {
-            appendBotMessage("Ini info \"" + nama + "\":");
-        }
-
-        appendBotNode(buildMenuCard(menuData, true));
-        appendBotMessage("Mau tahu menu lain atau ada yang ditanyain lagi?");
-    }
-
-    // ── Harga Menu Spesifik ───────────────────────────────────────
-
-    private void showHargaMenu(String text) {
-        updateScreenTag("User-Chat-Harga-Menu");
-        String[] menuData = findMenuInText(text);
-
-        if (menuData == null) {
-            appendBotMessage("Menu mana yang mau kamu tahu harganya? Sebutin namanya ya, nanti saya cariin 😊");
-            return;
-        }
-
-        String nama  = menuData[0];
-        String harga = menuData[2];
-
-        VBox card = makeCard();
-        card.setMaxWidth(320);
-
-        Label lblNama  = new Label("☕  " + nama);
-        lblNama.setStyle("-fx-font-size:16px; -fx-font-weight:bold; -fx-text-fill:#3B2414;");
-
-        Label lblHarga = new Label(harga);
-        lblHarga.setStyle("-fx-font-size:26px; -fx-font-weight:bold; -fx-text-fill:#C8956C;");
-
-        Label lblKat = new Label("Kategori: " + (menuData.length > 4 ? menuData[4] : "-"));
-        lblKat.setStyle("-fx-font-size:12px; -fx-text-fill:#8B6E5A;");
-
-        Region div = new Region();
-        div.setStyle("-fx-background-color:#E2D0B5; -fx-pref-height:1;");
-
-        Label lblDesk = new Label(menuData[1] != null ? menuData[1] : "");
-        lblDesk.setStyle("-fx-font-size:13px; -fx-text-fill:#7A5C3A;");
-        lblDesk.setWrapText(true);
-
-        card.getChildren().addAll(lblNama, lblHarga, div, lblDesk, lblKat);
-        appendBotNode(card);
-        appendBotMessage("Kalau mau tahu harga menu lain, tanyain aja ya! 😊");
-    }
-
-    // ── Bandingkan Dua Menu ───────────────────────────────────────
-
-    private void showBandingkanMenu(String text) {
-        updateScreenTag("User-Chat-Bandingkan-Menu");
-        List<String[]> dua = findTwoMenusInText(text);
-
-        // Validasi: kedua nama menu harus benar-benar disebut eksplisit di teks
-        // Cegah false-positive dari kata umum seperti "sandwich", "roti bakar" yang match banyak menu
-        if (dua.size() >= 2) {
-            String namaA = dua.get(0)[0].toLowerCase();
-            String namaB = dua.get(1)[0].toLowerCase();
-            // Kalau kedua menu tidak ada satupun kata uniknya yang disebut user → reject
-            boolean aDisebut = text.contains(namaA) ||
-                               Arrays.stream(namaA.split("\\s+"))
-                                     .anyMatch(w -> w.length() >= 4 && text.contains(w));
-            boolean bDisebut = text.contains(namaB) ||
-                               Arrays.stream(namaB.split("\\s+"))
-                                     .anyMatch(w -> w.length() >= 4 && text.contains(w));
-            if (!aDisebut || !bDisebut) dua = dua.subList(0, 0); // reset kalau tidak valid
-        }
-
-        if (dua.size() < 2) {
-            // Cek apakah user menyebut nama kategori/jenis, bukan nama menu spesifik
-            boolean sebut1Menu = dua.size() == 1;
-            if (sebut1Menu) {
-                appendBotMessage("Mau bandingin \"" + dua.get(0)[0] + "\" sama menu apa? " +
-                                 "Sebutin nama lengkapnya ya! 😊");
-            } else {
-                appendBotMessage("Mau bandingin menu mana? Sebutin nama lengkap dua menu yang ingin dibandingkan ya! 😊\n" +
-                                 "Contoh: \"Bedain Latte sama Cappuccino\"");
-            }
-            return;
-        }
-
-        String[] menuA = dua.get(0);
-        String[] menuB = dua.get(1);
-
-        appendBotMessage("Oke, kita bandingin " + menuA[0] + " vs " + menuB[0] + "! ☕");
-
-        HBox compareBox = new HBox(12);
-        compareBox.setAlignment(Pos.TOP_CENTER);
-        compareBox.setMaxWidth(520);
-        compareBox.getChildren().addAll(
-                buildCompareCard(menuA, "#FFF8F0", "#C8956C"),
-                buildVsLabel(),
-                buildCompareCard(menuB, "#F0F5FF", "#5C7EC8")
-        );
-
-        appendBotNode(compareBox);
-        appendBotMessage(generateKomparasi(menuA, menuB));
-    }
-
-    private Node buildVsLabel() {
-        Label vs = new Label("VS");
-        vs.setStyle("-fx-font-size:18px; -fx-font-weight:bold; -fx-text-fill:#9E7050; -fx-padding:60 0 0 0;");
-        return vs;
-    }
-
-    private VBox buildCompareCard(String[] menuData, String bgColor, String accentColor) {
-        VBox card = new VBox(6);
-        card.setStyle("-fx-background-color:" + bgColor + "; -fx-background-radius:12; " +
-                      "-fx-border-color:" + accentColor + "; -fx-border-radius:12; " +
-                      "-fx-border-width:1.5; -fx-padding:12; -fx-pref-width:200;");
-
-        // Gambar (jika ada)
-        String gambar = menuData[3];
-        if (gambar != null && !gambar.isBlank()) {
-            File f = new File("images/menu/" + gambar);
-            if (f.exists()) {
-                ImageView iv = new ImageView(new Image(f.toURI().toString(), 80, 80, true, true));
-                iv.setFitWidth(80);
-                iv.setFitHeight(80);
-                StackPane imgBox = new StackPane(iv);
-                imgBox.setAlignment(Pos.CENTER);
-                card.getChildren().add(imgBox);
-            }
-        }
-
-        Label lblNama = new Label(menuData[0]);
-        lblNama.setStyle("-fx-font-size:14px; -fx-font-weight:bold; -fx-text-fill:#3B2414; " +
-                         "-fx-wrap-text:true;");
-        lblNama.setWrapText(true);
-
-        Label lblHarga = new Label(menuData[2]);
-        lblHarga.setStyle("-fx-font-size:16px; -fx-font-weight:bold; -fx-text-fill:" + accentColor + ";");
-
-        Label lblDesk = new Label(menuData[1] != null ? menuData[1] : "-");
-        lblDesk.setStyle("-fx-font-size:11px; -fx-text-fill:#7A5C3A;");
-        lblDesk.setWrapText(true);
-
-        card.getChildren().addAll(lblNama, lblHarga, lblDesk);
-        return card;
-    }
-
-    /**
-     * Buat narasi perbandingan otomatis berdasarkan deskripsi dan harga.
-     */
-    private String generateKomparasi(String[] a, String[] b) {
-        StringBuilder sb = new StringBuilder();
-
-        // Perbandingan harga
-        int hargaA = parseHarga(a[2]);
-        int hargaB = parseHarga(b[2]);
-        if (hargaA != hargaB) {
-            String lebihMurah = hargaA < hargaB ? a[0] : b[0];
-            String selisih = "Rp" + String.format("%,.0f", (double) Math.abs(hargaA - hargaB)).replace(",", ".");
-            sb.append("💰 Harga: ").append(lebihMurah).append(" lebih murah selisih ").append(selisih).append(".\n\n");
-        } else {
-            sb.append("💰 Harga keduanya sama!\n\n");
-        }
-
-        // Narasi deskripsi
-        sb.append("☕ ").append(a[0]).append(": ")
-          .append(a[1] != null ? a[1] : "menu andalan kami").append(".\n");
-        sb.append("☕ ").append(b[0]).append(": ")
-          .append(b[1] != null ? b[1] : "menu andalan kami").append(".\n\n");
-
-        sb.append("Kalau suka yang lebih klasik dan bold, coba ").append(a[0])
-          .append(". Kalau mau yang sedikit berbeda, ").append(b[0]).append(" bisa jadi pilihan! 😊");
-
-        return sb.toString();
-    }
-
-    private int parseHarga(String hargaStr) {
+    private void logChatToDb(String pesan, String topik, String balasan) {
         try {
-            return Integer.parseInt(hargaStr.replaceAll("[^0-9]", ""));
+            Connection conn = DatabaseHelper.getConnection();
+            conn.prepareStatement(
+                            "INSERT INTO chat_log (pesan_user, topik, balasan_bot) VALUES ('" +
+                                    pesan.replace("'", "''") + "','" + topik + "','" +
+                                    balasan.replace("'", "''") + "')")
+                    .executeUpdate();
         } catch (Exception e) {
-            return 0;
+            System.err.println("Gagal log chat: " + e.getMessage());
         }
     }
 
-    // ── Fasilitas Spesifik ────────────────────────────────────────
-
-    private void showFasilitasSpesifik(String text) {
-        updateScreenTag("User-Chat-Fasilitas-Spesifik");
-
-        // Database jawaban fasilitas spesifik
-        if (text.matches(".*(wifi|wi.fi|internet|online).*")) {
-            boolean adaWifi = fasilitasList.stream()
-                    .anyMatch(f -> f[1].toLowerCase().contains("wi-fi") || f[1].toLowerCase().contains("wifi"));
-            if (adaWifi) {
-                appendBotMessage("Ada! 📶 Kamu bisa akses Free Wi-Fi di " + namaKedai + " tanpa biaya tambahan. " +
-                                 "Cocok banget buat yang mau kerja atau belajar sambil ngopi!");
-            } else {
-                appendBotMessage("Maaf, untuk info Wi-Fi silakan konfirmasi langsung ke kedai ya. " +
-                                 "Nanti aku tanyain dulu ke admin 🙏");
-            }
-
-        } else if (text.matches(".*(laptop|kerja|belajar|colokan|stop.kontak|charge|cas).*")) {
-            boolean adaPrivate = fasilitasList.stream()
-                    .anyMatch(f -> f[1].toLowerCase().contains("private") || f[1].toLowerCase().contains("room"));
-            appendBotMessage("Boleh banget bawa laptop! 💻\n" +
-                             (adaPrivate ? "Kami juga punya Private Room yang cocok untuk fokus kerja/belajar. " : "") +
-                             "Tersedia juga Wi-Fi gratis. " +
-                             "Untuk colokan/stop kontak, ada di beberapa titik di dalam kedai.");
-
-        } else if (text.matches(".*(parkir|motor|mobil|kendaraan).*")) {
-            boolean adaParkir = fasilitasList.stream()
-                    .anyMatch(f -> f[1].toLowerCase().contains("parkir"));
-            appendBotMessage(adaParkir
-                    ? "Tersedia area parkir untuk motor dan mobil 🚗\nParkirnya luas dan aman kok!"
-                    : "Untuk info parkir, silakan konfirmasi ke kedai langsung ya 🙏");
-
-        } else if (text.matches(".*(toilet|wc|kamar mandi|wc|rest room).*")) {
-            appendBotMessage("Ada toilet yang tersedia di dalam kedai 🚻\nBersih dan nyaman!");
-
-        } else if (text.matches(".*(mushola|sholat|ibadah).*")) {
-            appendBotMessage("Ada area mushola untuk sholat 🕌\nSilakan tanya ke staf untuk lokasinya ya!");
-
-        } else if (text.matches(".*(outdoor|luar|terbuka|taman|open.air).*")) {
-            boolean adaOutdoor = fasilitasList.stream()
-                    .anyMatch(f -> f[1].toLowerCase().contains("outdoor"));
-            appendBotMessage(adaOutdoor
-                    ? "Ada area outdoor yang asik buat ngopi sambil nikmatin suasana! ☂\nCocok banget pas cuaca cerah."
-                    : "Untuk info area outdoor, cek langsung ke kedai ya! 😊");
-
-        } else if (text.matches(".*(indoor|dalam|ber.ac|ac|dingin|sejuk).*")) {
-            appendBotMessage("Ada area indoor yang ber-AC, nyaman dan adem! ❄️\nCocok buat yang ga tahan panas.");
-
-        } else if (text.matches(".*(private|vip|khusus|ruangan).*")) {
-            boolean adaPrivate = fasilitasList.stream()
-                    .anyMatch(f -> f[1].toLowerCase().contains("private"));
-            appendBotMessage(adaPrivate
-                    ? "Ada Private Room tersedia! 🚪\nCocok untuk meeting kecil atau kerja yang butuh fokus.\nUntuk booking, hubungi kami langsung ya."
-                    : "Untuk info ruangan private, silakan hubungi kami langsung ya 🙏");
-
-        } else if (text.matches(".*(rokok|smoking|smoke).*")) {
-            appendBotMessage("Untuk area merokok, silakan tanya langsung ke staf ya — " +
-                             "bisa jadi ada area khusus outdoor untuk perokok. 🚬");
-
-        } else if (text.matches(".*(hewan|anjing|kucing|pet|binatang).*")) {
-            appendBotMessage("Untuk kebijakan membawa hewan peliharaan, sebaiknya konfirmasi dulu ke kedai langsung ya! " +
-                             "Biasanya diperbolehkan di area outdoor 🐾");
-
-        } else {
-            // Tidak ketemu keyword spesifik → tampilkan semua fasilitas
-            appendBotMessage("Ini fasilitas yang ada di " + namaKedai + ":");
-            showFasilitas();
-        }
-    }
-
-    // ── Unknown dengan Smart Suggest ─────────────────────────────
-
-    private void showUnknown(String text) {
-        // Nama menu tersebut disebut → tunjukkan info menu
-        String[] menuData = findMenuInText(text);
-        if (menuData != null && text.split("\\s+").length <= 6) {
-            appendBotMessage("Ini info \"" + menuData[0] + "\" ya:");
-            appendBotNode(buildMenuCard(menuData, false));
-            return;
-        }
-
-        // Pertanyaan yang relevan soal kedai tapi belum ada handler-nya
-        if (text.matches(".*(ramai|rame|sepi|penuh|antri|waiting list|crowded|sibuk|banyak (orang|pengunjung|tamu)).*")) {
-            appendBotMessage("Untuk kondisi keramaian kedai saat ini, saya belum bisa cek secara real-time 😅\n" +
-                             "Lebih akurat kalau langsung hubungi kedai atau langsung datang aja! Biasanya " +
-                             (LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY ||
-                              LocalDate.now().getDayOfWeek() == DayOfWeek.SUNDAY
-                                 ? "weekend memang lebih ramai, disarankan datang agak pagi ya ☕"
-                                 : "weekday cenderung lebih santai dan nyaman ☕"));
-            return;
-        }
-
-        if (text.matches(".*(enak|bagus|rekomen|worth|worth it|recommended|layak).*")) {
-            appendBotMessage("Menurut saya sih worth it banget! ☕ " + namaKedai + " punya menu yang beragam " +
-                             "dengan suasana yang nyaman. Mau lihat menu andalan kami?");
-            return;
-        }
-
-        if (text.matches(".*(bayar|payment|transfer|qris|tunai|cash|kartu|debit|kredit|ovo|gopay|dana|shopeepay).*")) {
-            appendBotMessage("Untuk metode pembayaran yang diterima, lebih tepatnya langsung tanyain ke staf kedai ya 🙏 " +
-                             "Tapi umumnya kedai kopi modern sudah menerima QRIS, cash, dan transfer!");
-            return;
-        }
-
-        if (text.matches(".*(delivery|antar|ojol|gofood|grabfood|shopeefood|pesan online|order online).*")) {
-            appendBotMessage("Untuk layanan delivery, silakan cek di GoFood / GrabFood dengan keyword \"" +
-                             namaKedai + "\" ya! 🛵 Atau hubungi langsung kedai untuk info lebih lanjut.");
-            return;
-        }
-
-        if (text.matches(".*(diskon|promo|voucher|kupon|cashback|potongan|gratis|free|happy hour).*")) {
-            appendBotMessage("Wah, untuk info promo terkini saya belum update nih 😅 " +
-                             "Cek langsung Instagram atau hubungi kedai biar dapat info promo terbaru ya!");
-            return;
-        }
-
-        if (text.matches(".*(kolam|renang|bioskop|gym|hotel|mall|taman|wahana).*")) {
-            appendBotMessage("Hehe, itu bukan di sini 😄 " + namaKedai + " adalah kedai kopi, bukan " +
-                             text.replaceAll(".*(kolam|renang|bioskop|gym|hotel|mall|taman|wahana).*", "$1") +
-                             ". Tapi kopinya juara! ☕ Ada yang mau ditanyain soal kedai?");
-            return;
-        }
-
-        // Betul-betul tidak relevan → respons natural, tidak berulang
-        String[] responses = {
-            "Wah itu di luar pengetahuan saya 😄 Saya cuma tau seputar " + namaKedai + " nih. Ada yang bisa saya bantu?",
-            "Hmm, kayaknya itu bukan bidang saya 😅 Kalau soal kopi, menu, atau kedai — saya siap bantu!",
-            "Itu saya kurang paham 🙏 Tapi kalau nanya soal kedai, saya ahlinya! Mau tanya apa?",
-            "Waduh, itu di luar jangkauan saya 😄 Fokus saya cuma seputar " + namaKedai + " aja nih!"
-        };
-        appendBotMessage(responses[new Random().nextInt(responses.length)]);
-    }
-
-    // ── Quick Button Handlers ─────────────────────────────────────
-
-    @FXML public void onMenuDanHarga()   { appendUserBubble("Menu & Harga");     showMenuDanHarga();           }
-    @FXML public void onFasilitas()      { appendUserBubble("Fasilitas");        showFasilitas();              }
-    @FXML public void onJamOperasional() { appendUserBubble("Jam Operasional");  showJamOperasional();         }
-    @FXML public void onLokasiKedai()    { appendUserBubble("Lokasi Kedai");     showLokasi();                 }
-    @FXML public void onRekomendasiMenu(){ appendUserBubble("Rekomendasi Menu"); showRekomendasiMenuHariIni(); }
+    @FXML public void onMenuDanHarga()   { appendUserBubble("Menu & Harga");    showMenuDanHarga();     }
+    @FXML public void onFasilitas()      { appendUserBubble("Fasilitas");       showFasilitas();        }
+    @FXML public void onJamOperasional() { appendUserBubble("Jam Operasional"); showJamOperasional();   }
+    @FXML public void onLokasiKedai()    { appendUserBubble("Lokasi Kedai");    showLokasi();           }
 
     @FXML
     private void onLogoutUser() {
         Navigator.goTo(inputField, "/com/rplbo/app/rplboblessedbot/Welcome.fxml");
     }
 
-    // ═════════════════════════════════════════════════════════════
-    //  SHOW METHODS (UI Response)
-    // ═════════════════════════════════════════════════════════════
+    private String detectTopic(String text) {
+        // ── 1. Perbandingan dua menu harus dicek PALING AWAL ───────────────
+        // Contoh yang sekarang bisa:
+        // "latte sama cappuccino"
+        // "bedain latte sama cappuccino"
+        // "latte vs cappuccino"
+        // "mending americano atau long black"
+        // "kopi gula aren sama es kopi susu bedanya apa"
+        List<String> menuDitemukanUntukCompare = findAllMenusInText(text);
+
+        if (menuDitemukanUntukCompare.size() >= 2 &&
+                containsAny(text,
+                        "beda", "bedain", "perbedaan", "vs",
+                        "dibanding", "dibandingkan", "lebih baik",
+                        "mending", "mending mana", "pilih", "pilih mana",
+                        "rekomendasi antara", "sama", "atau", "antara")) {
+
+            return "bandingkan_menu:" +
+                    menuDitemukanUntukCompare.get(0) + "|" +
+                    menuDitemukanUntukCompare.get(1);
+        }
+
+        // ── 2. Patokan lokasi ──────────────────────────────────────────────
+        if (containsAny(text, "patokan", "petunjuk arah", "ciri khas tempat",
+                "dekat apa", "deket apa", "landmark", "tanda", "patokannya")) {
+            return "patokan";
+        }
+
+        // ── 3. Pertanyaan spesifik tentang satu menu ───────────────────────
+        // Penting: bagian ini harus SETELAH perbandingan.
+        // Kalau tidak, "latte sama cappuccino" akan kebaca sebagai detail Latte.
+        String menuDikenali = findMenuInText(text);
+        if (menuDikenali != null) {
+            boolean adaKataDetail = containsAny(text,
+                    "apa", "apakah", "itu", "jelaskan", "cerita",
+                    "gimana", "bagaimana", "info", "informasi", "detail",
+                    "deskripsi", "kaya apa", "kayak apa", "seperti apa",
+                    "rasanya", "rasa", "bahan", "isinya", "isi", "tentang");
+
+            boolean tidakAdaTopikLain = !containsAny(text,
+                    "beda", "bedain", "perbedaan", "vs", "dibanding", "dibandingkan",
+                    "lebih baik", "mending", "mending mana", "pilih", "pilih mana",
+                    "rekomendasi antara", "sama", "atau", "antara",
+                    "harga", "semua menu", "daftar", "list");
+
+            if (adaKataDetail || tidakAdaTopikLain) {
+                return "detail_menu:" + menuDikenali;
+            }
+        }
+
+        // ── 4. Kopi ringan + nugas ─────────────────────────────────────────
+        if (containsAny(text, "ga terlalu pahit", "tidak terlalu pahit", "ga pahit",
+                "tidak pahit", "kurang pahit", "mild", "ringan") &&
+                containsAny(text, "nugas", "laptop", "kerja", "belajar")) {
+            return "kopi_ringan_nugas";
+        }
+
+        // ── 5. Kopi ringan ─────────────────────────────────────────────────
+        if (containsAny(text, "ga terlalu pahit", "tidak terlalu pahit", "ga pahit",
+                "tidak pahit", "kurang pahit", "mild", "ringan")) {
+            return "kopi_ringan";
+        }
+
+        // ── 6. Kopi manis ──────────────────────────────────────────────────
+        if (containsAny(text, "manis", "gula aren", "creamy", "susu") &&
+                containsAny(text, "kopi", "coffee", "minum")) {
+            return "kopi_manis";
+        }
+
+        // ── 7. Sarapan ─────────────────────────────────────────────────────
+        if (containsAny(text, "sarapan", "breakfast", "pagi")) {
+            return "sarapan";
+        }
+
+        // ── 8. Fasilitas laptop ────────────────────────────────────────────
+        if (containsAny(text, "laptop", "nugas", "kerja", "belajar",
+                "colokan", "charger", "wifi", "wi-fi")) {
+            return "fasilitas_laptop";
+        }
+
+        // ── 9. Topik umum ──────────────────────────────────────────────────
+        if (text.matches(".*\\b(rekomendasi|rekomen|saran|suggest|pilihan hari|menu hari|hari ini).*"))
+            return "rekomendasi";
+        if (text.matches(".*\\b(menu|harga|kopi|minum|makan|pesan|beli|ada apa|tersedia|lainnya|selain itu).*"))
+            return "menu";
+        if (text.matches(".*\\b(fasilitas|wifi|wi-fi|parkir|ruang|outdoor|private).*"))
+            return "fasilitas";
+        if (text.matches(".*\\b(jam|buka|tutup|operasional|waktu|kapan).*"))
+            return "jam";
+        if (text.matches(".*\\b(lokasi|alamat|dimana|mana|tempat|maps|jalan).*"))
+            return "lokasi";
+
+        return "unknown";
+    }
+
+    /**
+     * Kembalikan nama menu pertama yang cocok dalam teks, atau null jika tidak ada.
+     * Pencocokan dilakukan secara case-insensitive pada versi lowercase teks.
+     */
+    private String findMenuInText(String lowerText) {
+        for (List<String[]> items : menuByKategori.values()) {
+            for (String[] item : items) {
+                if (lowerText.contains(item[0].toLowerCase())) {
+                    return item[0];
+                }
+            }
+        }
+        // Alias umum yang diketik tanpa nama lengkap
+        Map<String, String> alias = Map.of(
+                "gula aren",    "Kopi Gula Aren",
+                "es kopi",      "Es Kopi Susu",
+                "dalgona",      "Dalgona Coffee",
+                "flat white",   "Flat White",
+                "long black",   "Long Black",
+                "roti bakar",   "Roti Bakar Coklat",
+                "sandwich",     "Sandwich Telur",
+                "kentang",      "Kentang Goreng",
+                "pisang goreng","Pisang Goreng Crispy"
+        );
+        for (Map.Entry<String, String> e : alias.entrySet()) {
+            if (lowerText.contains(e.getKey())) return e.getValue();
+        }
+        return null;
+    }
+
+    /**
+     * Kembalikan semua nama menu yang muncul dalam teks (untuk perbandingan).
+     */
+    private List<String> findAllMenusInText(String lowerText) {
+        List<String> found = new ArrayList<>();
+
+        // Cari dari data menu yang dimuat dari database/fallback
+        for (List<String[]> items : menuByKategori.values()) {
+            for (String[] item : items) {
+                String menuName = item[0].toLowerCase();
+
+                if (lowerText.contains(menuName) && !found.contains(item[0])) {
+                    found.add(item[0]);
+                }
+            }
+        }
+
+        // Alias supaya user tidak harus mengetik nama menu 100% sama
+        Map<String, String> alias = Map.ofEntries(
+                Map.entry("latte", "Latte"),
+                Map.entry("cappuccino", "Cappuccino"),
+                Map.entry("americano", "Americano"),
+                Map.entry("long black", "Long Black"),
+                Map.entry("v60", "V60"),
+                Map.entry("flat white", "Flat White"),
+
+                Map.entry("gula aren", "Kopi Gula Aren"),
+                Map.entry("kopi gula aren", "Kopi Gula Aren"),
+                Map.entry("es kopi", "Es Kopi Susu"),
+                Map.entry("es kopi susu", "Es Kopi Susu"),
+                Map.entry("dalgona", "Dalgona Coffee"),
+                Map.entry("dalgona coffee", "Dalgona Coffee"),
+
+                Map.entry("roti bakar", "Roti Bakar Coklat"),
+                Map.entry("sandwich", "Sandwich Telur"),
+                Map.entry("sandwich telur", "Sandwich Telur"),
+                Map.entry("kentang", "Kentang Goreng"),
+                Map.entry("kentang goreng", "Kentang Goreng"),
+                Map.entry("pisang goreng", "Pisang Goreng Crispy")
+        );
+
+        for (Map.Entry<String, String> e : alias.entrySet()) {
+            if (lowerText.contains(e.getKey()) && !found.contains(e.getValue())) {
+                found.add(e.getValue());
+            }
+        }
+
+        return found;
+    }
+
+    private boolean containsAny(String text, String... keywords) {
+        for (String keyword : keywords) {
+            if (text.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void routeToTopic(String topic) {
+        if (topic.startsWith("detail_menu:")) {
+            String namaMenu = topic.substring("detail_menu:".length());
+            showDetailMenu(namaMenu);
+            return;
+        }
+        if (topic.startsWith("bandingkan_menu:")) {
+            String[] parts = topic.substring("bandingkan_menu:".length()).split("\\|");
+            showBandingkanMenu(parts[0], parts.length > 1 ? parts[1] : "");
+            return;
+        }
+        switch (topic) {
+            case "patokan"                 -> showPatokan();
+            case "rekomendasi"             -> showRekomendasiMenuHariIni();
+            case "kopi_ringan"             -> showRekomendasiKopiRingan();
+            case "kopi_ringan_nugas"       -> showRekomendasiKopiRinganUntukNugas();
+            case "kopi_manis"              -> showRekomendasiKopiManis();
+            case "sarapan"                 -> showRekomendasiSarapan();
+            case "beda_latte_cappuccino"   -> showBandingkanMenu("Latte", "Cappuccino");
+            case "fasilitas_laptop"        -> showFasilitasLaptop();
+            case "menu"                    -> showMenuDanHarga();
+            case "fasilitas"               -> showFasilitas();
+            case "jam"                     -> showJamOperasional();
+            case "lokasi"                  -> showLokasi();
+            default                         -> showUnknown();
+        }
+    }
+
+
+    private void showRekomendasiKopiRingan() {
+        updateScreenTag("User-Chat-Rekomendasi-Kopi-Ringan");
+        appendBotMessage("Kalau kamu cari kopi yang tidak terlalu pahit, aku rekomendasikan Latte, Kopi Gula Aren, atau Es Kopi Susu. Rasanya lebih smooth, creamy, dan lebih aman buat yang kurang suka kopi strong ☕");
+        showMenuDanHarga();
+    }
+
+    private void showRekomendasiKopiRinganUntukNugas() {
+        updateScreenTag("User-Chat-Rekomendasi-Kopi-Nugas");
+        appendBotMessage("Buat nugas sambil minum kopi yang tidak terlalu pahit, pilihan yang cocok itu Latte, Kopi Gula Aren, atau Es Kopi Susu ☕💻");
+        appendBotMessage("Kalau bawa laptop juga bisa. Tempatnya cocok buat kerja atau belajar, apalagi kalau kamu butuh WiFi dan suasana santai.");
+        showFasilitas();
+    }
+
+    private void showRekomendasiKopiManis() {
+        updateScreenTag("User-Chat-Rekomendasi-Kopi-Manis");
+        appendBotMessage("Kalau mau kopi yang manis tapi masih terasa kopinya, aku saranin Kopi Gula Aren atau Es Kopi Susu. Kopinya tetap terasa, tapi lebih creamy dan tidak terlalu pahit ☕");
+        showMenuDanHarga();
+    }
+
+    private void showRekomendasiSarapan() {
+        updateScreenTag("User-Chat-Rekomendasi-Sarapan");
+        appendBotMessage("Untuk sarapan, pilihan yang cocok biasanya Latte atau Cappuccino dipasangkan dengan Roti Bakar, Sandwich Telur, Pisang Goreng, atau Kentang Goreng 🍞☕");
+        appendBotMessage("Kalau mau yang ringan, pilih Latte + Roti Bakar. Kalau mau agak mengenyangkan, pilih Cappuccino + Sandwich Telur.");
+        showMenuDanHarga();
+    }
+
+    // ── Tampilkan detail satu menu ────────────────────────────────────────
+    private void showDetailMenu(String namaMenu) {
+        updateScreenTag("User-Chat-Detail-Menu");
+
+        // Cari item menu
+        String[] foundItem = null;
+        String foundKategori = null;
+        outer:
+        for (Map.Entry<String, List<String[]>> entry : menuByKategori.entrySet()) {
+            for (String[] item : entry.getValue()) {
+                if (item[0].equalsIgnoreCase(namaMenu)) {
+                    foundItem    = item;
+                    foundKategori = entry.getKey();
+                    break outer;
+                }
+            }
+        }
+
+        if (foundItem == null) {
+            appendBotMessage("Maaf, saya tidak menemukan informasi tentang menu \"" + namaMenu + "\". " +
+                    "Coba cek daftar menu lengkap kami ya!");
+            showMenuDanHarga();
+            return;
+        }
+
+        appendBotMessage("Berikut informasi tentang " + foundItem[0] + ":");
+
+        VBox card = makeCard();
+        card.setMaxWidth(360);
+        card.setStyle("-fx-background-color:#FFF8F2; -fx-background-radius:14;" +
+                "-fx-border-color:#C8956C; -fx-border-radius:14; -fx-border-width:1.5;" +
+                "-fx-padding:14 16 14 16;");
+
+        // Badge kategori
+        HBox badgeRow = new HBox(6);
+        badgeRow.setAlignment(Pos.CENTER_LEFT);
+        Label badge = new Label("📂  " + foundKategori);
+        badge.setStyle("-fx-background-color:#E8D5C0; -fx-text-fill:#7A5C3A;" +
+                "-fx-background-radius:20; -fx-padding:3 10 3 10;" +
+                "-fx-font-size:11px; -fx-font-weight:bold;");
+        badgeRow.getChildren().add(badge);
+
+        // Nama + Harga
+        HBox namaHargaRow = new HBox();
+        namaHargaRow.setAlignment(Pos.CENTER_LEFT);
+        Label lblNama = new Label("☕  " + foundItem[0]);
+        lblNama.setStyle("-fx-font-size:17px; -fx-font-weight:bold; -fx-text-fill:#3B2414;");
+        HBox.setHgrow(lblNama, Priority.ALWAYS);
+        Label lblHarga = new Label(foundItem[2]);
+        lblHarga.setStyle("-fx-font-size:15px; -fx-font-weight:bold; -fx-text-fill:#C8956C;");
+        namaHargaRow.getChildren().addAll(lblNama, lblHarga);
+
+        // Gambar (jika ada)
+        String imgUrl = (foundItem.length > 3 && foundItem[3] != null) ? foundItem[3] : null;
+        if (imgUrl != null && !imgUrl.isBlank()) {
+            try {
+                File imgFile = new File("images/menu/" + imgUrl);
+                String imageUri = imgFile.exists() ? imgFile.toURI().toString() : imgUrl;
+                ImageView iv = new ImageView(new Image(imageUri, 320, 160, true, true, true));
+                iv.setFitWidth(320);
+                iv.setFitHeight(160);
+                iv.setStyle("-fx-background-radius:10;");
+                card.getChildren().addAll(badgeRow, namaHargaRow, iv);
+            } catch (Exception e) {
+                card.getChildren().addAll(badgeRow, namaHargaRow);
+            }
+        } else {
+            card.getChildren().addAll(badgeRow, namaHargaRow);
+        }
+
+        // Deskripsi
+        Region divider = new Region();
+        divider.setStyle("-fx-background-color:#E2C4A0; -fx-pref-height:1;");
+        Label lblDesc = new Label(foundItem[1]);
+        lblDesc.setStyle("-fx-font-size:13px; -fx-text-fill:#5A3E2B;");
+        lblDesc.setWrapText(true);
+
+        card.getChildren().addAll(divider, lblDesc);
+        appendBotNode(card);
+    }
+
+    // ── Perbandingan dua menu (generik) ──────────────────────────────────
+    private void showBandingkanMenu(String namaA, String namaB) {
+        updateScreenTag("User-Chat-Perbandingan-Menu");
+
+        String[] itemA = findItemByName(namaA);
+        String[] itemB = findItemByName(namaB);
+
+        if (itemA == null || itemB == null) {
+            // Fallback teks bawaan untuk latte vs cappuccino jika DB belum siap
+            if ((namaA.equalsIgnoreCase("Latte") && namaB.equalsIgnoreCase("Cappuccino")) ||
+                    (namaA.equalsIgnoreCase("Cappuccino") && namaB.equalsIgnoreCase("Latte"))) {
+                appendBotMessage("Latte dan Cappuccino sama-sama berbahan espresso dan susu, tapi rasanya beda. " +
+                        "Latte lebih creamy dan lembut karena susunya lebih banyak. Cappuccino punya foam lebih tebal " +
+                        "dan rasa kopinya biasanya lebih terasa ☕");
+                appendBotMessage("Kalau kamu tidak suka terlalu pahit, pilih Latte. " +
+                        "Kalau mau rasa kopi yang lebih kuat tapi tetap ada susu, pilih Cappuccino.");
+            } else {
+                appendBotMessage("Maaf, saya tidak bisa menemukan salah satu atau kedua menu yang ingin kamu bandingkan. " +
+                        "Coba lihat daftar menu lengkap kami ya!");
+                showMenuDanHarga();
+            }
+            return;
+        }
+
+        appendBotMessage("Yuk, bandingkan " + itemA[0] + " vs " + itemB[0] + " ☕");
+
+        // Card perbandingan
+        VBox card = makeCard();
+        card.setMaxWidth(500);
+
+        // Header
+        HBox headerRow = new HBox();
+        headerRow.setAlignment(Pos.CENTER);
+        Label lblTitle = new Label("⚖  Perbandingan Menu");
+        lblTitle.setStyle("-fx-font-size:14px; -fx-font-weight:bold; -fx-text-fill:#3B2414;");
+        headerRow.getChildren().add(lblTitle);
+        card.getChildren().add(headerRow);
+
+        Region div0 = new Region();
+        div0.setStyle("-fx-background-color:#E2C4A0; -fx-pref-height:1;");
+        card.getChildren().add(div0);
+
+        // Dua kolom: itemA | vs | itemB
+        HBox cols = new HBox(10);
+        cols.setAlignment(Pos.TOP_CENTER);
+
+        for (String[] item : new String[][]{ itemA, itemB }) {
+            VBox col = new VBox(6);
+            col.setAlignment(Pos.TOP_CENTER);
+            col.setPrefWidth(185);
+            col.setStyle("-fx-background-color:#FFF8F2; -fx-background-radius:10; -fx-padding:10;");
+
+            // Gambar atau emoji
+            String imgUrl = (item.length > 3 && item[3] != null) ? item[3] : null;
+            if (imgUrl != null && !imgUrl.isBlank()) {
+                try {
+                    File imgFile = new File("images/menu/" + imgUrl);
+                    String imageUri = imgFile.exists() ? imgFile.toURI().toString() : imgUrl;
+                    ImageView iv = new ImageView(new Image(imageUri, 120, 80, true, true, true));
+                    iv.setFitWidth(120);
+                    iv.setFitHeight(80);
+                    col.getChildren().add(iv);
+                } catch (Exception ex) {
+                    Label emoji = new Label("☕");
+                    emoji.setStyle("-fx-font-size:32px;");
+                    col.getChildren().add(emoji);
+                }
+            } else {
+                Label emoji = new Label("☕");
+                emoji.setStyle("-fx-font-size:32px;");
+                col.getChildren().add(emoji);
+            }
+
+            Label lblNama = new Label(item[0]);
+            lblNama.setStyle("-fx-font-size:14px; -fx-font-weight:bold; -fx-text-fill:#3B2414;");
+            lblNama.setWrapText(true);
+            lblNama.setAlignment(Pos.CENTER);
+
+            Label lblHarga = new Label(item[2]);
+            lblHarga.setStyle("-fx-font-size:13px; -fx-font-weight:bold; -fx-text-fill:#C8956C;");
+
+            Label lblDesc = new Label(item[1]);
+            lblDesc.setStyle("-fx-font-size:11px; -fx-text-fill:#7A5C3A;");
+            lblDesc.setWrapText(true);
+            lblDesc.setAlignment(Pos.CENTER);
+
+            col.getChildren().addAll(lblNama, lblHarga, lblDesc);
+            cols.getChildren().add(col);
+
+            if (item == itemA) {
+                Label vs = new Label("VS");
+                vs.setStyle("-fx-font-size:16px; -fx-font-weight:bold; -fx-text-fill:#C8956C;" +
+                        "-fx-padding:30 0 0 0;");
+                cols.getChildren().add(vs);
+            }
+        }
+
+        card.getChildren().add(cols);
+
+        // Saran pilihan
+        Region div1 = new Region();
+        div1.setStyle("-fx-background-color:#E2C4A0; -fx-pref-height:1;");
+        card.getChildren().add(div1);
+
+        Label lblSaran = new Label(buildSaranPerbandingan(itemA, itemB));
+        lblSaran.setStyle("-fx-font-size:12px; -fx-text-fill:#5A3E2B; -fx-font-style:italic;");
+        lblSaran.setWrapText(true);
+        card.getChildren().add(lblSaran);
+
+        appendBotNode(card);
+    }
+
+    /** Buat teks saran perbandingan otomatis berdasarkan harga & deskripsi */
+    private String buildSaranPerbandingan(String[] a, String[] b) {
+        int hargaA = extractHarga(a[2]);
+        int hargaB = extractHarga(b[2]);
+
+        String murah  = hargaA <= hargaB ? a[0] : b[0];
+        String mahal  = hargaA <= hargaB ? b[0] : a[0];
+
+        if (hargaA == hargaB) {
+            return "💡 Harganya sama! Pilih sesuai selera — coba baca deskripsinya untuk menentukan mana yang lebih cocok buat kamu.";
+        }
+        return "💡 " + murah + " lebih terjangkau dibanding " + mahal + ". Keduanya memiliki cita rasa khas masing-masing — pilih sesuai mood dan selera kamu!";
+    }
+
+    private int extractHarga(String hargaStr) {
+        try { return Integer.parseInt(hargaStr.replaceAll("[^0-9]", "")); }
+        catch (Exception e) { return 0; }
+    }
+
+    /** Cari item menu berdasarkan nama (case-insensitive) */
+    private String[] findItemByName(String nama) {
+        for (List<String[]> items : menuByKategori.values()) {
+            for (String[] item : items) {
+                if (item[0].equalsIgnoreCase(nama)) return item;
+            }
+        }
+        return null;
+    }
+
+    // ── Tampilkan patokan lokasi kedai ───────────────────────────────────
+    private void showPatokan() {
+        updateScreenTag("User-Chat-Patokan");
+
+        if (patokan == null || patokan.isBlank()) {
+            appendBotMessage("Maaf, informasi patokan untuk kedai kami belum tersedia saat ini. " +
+                    "Kamu bisa lihat lokasi lengkapnya lewat Google Maps ya!");
+            showLokasi();
+            return;
+        }
+
+        appendBotMessage("Ini patokan lokasi " + namaKedai + " agar mudah ditemukan:");
+
+        VBox card = makeCard();
+        card.setMaxWidth(360);
+        card.setStyle("-fx-background-color:#FFF3E0; -fx-background-radius:14;" +
+                "-fx-border-color:#C8956C; -fx-border-radius:14; -fx-border-width:1.5;" +
+                "-fx-padding:14 16 14 16;");
+
+        // Judul
+        HBox titleRow = new HBox(8);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+        Label flagIcon = new Label("🚩");
+        flagIcon.setStyle("-fx-font-size:22px;");
+        Label lblJudul = new Label("Patokan Lokasi");
+        lblJudul.setStyle("-fx-font-size:15px; -fx-font-weight:bold; -fx-text-fill:#3B2414;");
+        titleRow.getChildren().addAll(flagIcon, lblJudul);
+
+        Region divider = new Region();
+        divider.setStyle("-fx-background-color:#E2C4A0; -fx-pref-height:1;");
+
+        // Isi patokan
+        Label lblPatokan = new Label(patokan);
+        lblPatokan.setStyle("-fx-font-size:13px; -fx-text-fill:#5A3E2B;");
+        lblPatokan.setWrapText(true);
+
+        // Alamat lengkap
+        HBox alamatRow = new HBox(6);
+        alamatRow.setAlignment(Pos.CENTER_LEFT);
+        Label pinIcon = new Label("📍");
+        pinIcon.setStyle("-fx-font-size:14px;");
+        Label lblAlamat = new Label(alamat);
+        lblAlamat.setStyle("-fx-font-size:11px; -fx-text-fill:#A07850;");
+        lblAlamat.setWrapText(true);
+        alamatRow.getChildren().addAll(pinIcon, lblAlamat);
+
+        // Tombol Maps
+        Button btnMaps = new Button("Buka di Google Maps");
+        btnMaps.getStyleClass().add("btn-secondary");
+        btnMaps.setMaxWidth(Double.MAX_VALUE);
+        final String url = mapsUrl;
+        btnMaps.setOnAction(e -> {
+            try {
+                java.awt.Desktop.getDesktop().browse(new java.net.URI(url));
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        card.getChildren().addAll(titleRow, divider, lblPatokan, alamatRow, btnMaps);
+        appendBotNode(card);
+    }
+
+    private void showFasilitasLaptop() {
+        updateScreenTag("User-Chat-Fasilitas-Laptop");
+        appendBotMessage("Bisa kok kalau mau bawa laptop 💻 Tempatnya cocok buat nugas, kerja, atau belajar santai. Kamu juga bisa cek fasilitas yang tersedia di bawah ini.");
+        showFasilitas();
+    }
 
     private void showMenuDanHarga() {
         updateScreenTag("User-Chat-Menu-dan-Harga");
-        appendBotMessage("Berikut semua menu yang tersedia di " + namaKedai + ":");
+        appendBotMessage("Berikut informasi menu yang tersedia:");
 
         VBox card = makeCard();
         card.setMaxWidth(520);
 
-        HBox tabs     = new HBox(4);
+        HBox tabs = new HBox(4);
         tabs.setMaxWidth(430);
         VBox menuList = new VBox(8);
 
-        List<String>  kategoriList = new ArrayList<>(menuByKategori.keySet());
-        List<Button>  tabButtons   = new ArrayList<>();
+        List<String> kategoriList = new ArrayList<>(menuByKategori.keySet());
+        List<Button> tabButtons   = new ArrayList<>();
 
         for (int i = 0; i < kategoriList.size(); i++) {
-            Button btn = makeTabBtn(kategoriList.get(i), i == 0);
+            String kat = kategoriList.get(i);
+            Button btn = makeTabBtn(kat, i == 0);
             tabButtons.add(btn);
             tabs.getChildren().add(btn);
         }
@@ -965,7 +737,6 @@ public class UserChatController {
 
         card.getChildren().addAll(tabs, menuList);
         appendBotNode(card);
-        appendBotMessage("Mau tahu detail atau rekomendasi dari menu di atas? Tanyain aja! 😊");
     }
 
     private void populateMenuList(VBox container, List<String[]> items) {
@@ -977,6 +748,7 @@ public class UserChatController {
             row.getStyleClass().add("menu-item-row");
             row.setAlignment(Pos.CENTER_LEFT);
 
+            // Gambar dari URL, fallback ke emoji
             StackPane icon = new StackPane();
             icon.getStyleClass().add("image-placeholder");
             icon.setPrefSize(56, 56);
@@ -986,24 +758,28 @@ public class UserChatController {
             String imgUrl = (item.length > 3 && item[3] != null) ? item[3] : null;
             if (imgUrl != null && !imgUrl.isBlank()) {
                 try {
-                    File imgFile    = new File("images/menu/" + imgUrl);
+                    File imgFile  = new File("images/menu/" + imgUrl);
                     String imageUri = imgFile.exists() ? imgFile.toURI().toString() : imgUrl;
-                    ImageView iv    = new ImageView(new Image(imageUri, 56, 56, true, true, true));
+                    ImageView iv  = new ImageView(new Image(imageUri, 56, 56, true, true, true));
                     iv.setFitWidth(56);
                     iv.setFitHeight(56);
                     icon.getChildren().add(iv);
                 } catch (Exception e) {
-                    icon.getChildren().add(emojiLabel("☕"));
+                    Label emoji = new Label("☕");
+                    emoji.setStyle("-fx-font-size:20px;");
+                    icon.getChildren().add(emoji);
                 }
             } else {
-                icon.getChildren().add(emojiLabel("☕"));
+                Label emoji = new Label("☕");
+                emoji.setStyle("-fx-font-size:20px;");
+                icon.getChildren().add(emoji);
             }
 
             VBox info = new VBox(2);
             HBox.setHgrow(info, Priority.ALWAYS);
             Label name = new Label(item[0]);
             name.getStyleClass().add("menu-item-name");
-            Label desc = new Label(item[1] != null ? item[1] : "");
+            Label desc = new Label(item[1]);
             desc.getStyleClass().add("menu-item-desc");
             desc.setWrapText(true);
             desc.setMaxWidth(200);
@@ -1031,23 +807,22 @@ public class UserChatController {
 
         updateScreenTag("User-Chat-Rekomendasi-Menu");
 
-        String namaMenu = null, deskripsi = null, catatan = null, hargaStr = null, gambar = null;
+        String namaMenu = null, deskripsi = null, catatan = null, hargaStr = null;
         try {
             Connection conn = DatabaseHelper.getConnection();
             try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT m.nama, m.deskripsi, m.harga, m.gambar_url, r.catatan " +
-                    "FROM rekomendasi_menu r " +
-                    "JOIN menu m ON r.menu_id = m.id " +
-                    "WHERE r.hari = ?")) {
+                    "SELECT m.nama, m.deskripsi, m.harga, r.catatan " +
+                            "FROM rekomendasi_menu r " +
+                            "JOIN menu m ON r.menu_id = m.id " +
+                            "WHERE r.hari = ?")) {
                 ps.setString(1, hariIni);
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) {
                     namaMenu  = rs.getString("nama");
                     deskripsi = rs.getString("deskripsi");
                     catatan   = rs.getString("catatan");
-                    gambar    = rs.getString("gambar_url");
                     hargaStr  = "Rp" + String.format("%,.0f", (double) rs.getInt("harga"))
-                                        .replace(",", ".");
+                            .replace(",", ".");
                 }
             }
         } catch (Exception e) {
@@ -1058,39 +833,24 @@ public class UserChatController {
 
         if (namaMenu == null) {
             appendBotMessage("Belum ada rekomendasi menu untuk hari " + hariIni + " ini. " +
-                             "Silakan tanyakan menu lainnya atau lihat daftar menu lengkap!");
+                    "Silakan tanyakan menu lainnya!");
             return;
         }
 
         VBox card = makeCard();
-        card.setMaxWidth(380);
+        card.setMaxWidth(370);
         card.setStyle("-fx-background-color:#FFF3E0; -fx-background-radius:14;" +
-                      "-fx-border-color:#C8956C; -fx-border-radius:14; -fx-border-width:1.5;" +
-                      "-fx-padding:14 16 14 16;");
+                "-fx-border-color:#C8956C; -fx-border-radius:14; -fx-border-width:1.5;" +
+                "-fx-padding:14 16 14 16;");
 
-        // Badge hari
         HBox badgeRow = new HBox(6);
         badgeRow.setAlignment(Pos.CENTER_LEFT);
         Label badge = new Label("⭐  Pilihan Hari " + hariIni);
         badge.setStyle("-fx-background-color:#C8956C; -fx-text-fill:white;" +
-                       "-fx-background-radius:20; -fx-padding:3 10 3 10;" +
-                       "-fx-font-size:11px; -fx-font-weight:bold;");
+                "-fx-background-radius:20; -fx-padding:3 10 3 10;" +
+                "-fx-font-size:11px; -fx-font-weight:bold;");
         badgeRow.getChildren().add(badge);
 
-        // Gambar (jika ada)
-        if (gambar != null && !gambar.isBlank()) {
-            File f = new File("images/menu/" + gambar);
-            if (f.exists()) {
-                ImageView iv = new ImageView(new Image(f.toURI().toString(), 120, 120, true, true));
-                iv.setFitWidth(120);
-                iv.setFitHeight(120);
-                StackPane imgBox = new StackPane(iv);
-                imgBox.setAlignment(Pos.CENTER);
-                card.getChildren().add(imgBox);
-            }
-        }
-
-        // Nama & Harga
         HBox namaHargaRow = new HBox();
         namaHargaRow.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(namaHargaRow, Priority.ALWAYS);
@@ -1100,50 +860,52 @@ public class UserChatController {
         HBox.setHgrow(lblNama, Priority.ALWAYS);
 
         Label lblHarga = new Label(hargaStr);
+        lblHarga.getStyleClass().add("menu-item-price");
         lblHarga.setStyle("-fx-font-size:15px; -fx-font-weight:bold; -fx-text-fill:#C8956C;");
+
         namaHargaRow.getChildren().addAll(lblNama, lblHarga);
 
-        // Deskripsi
         Label lblDesc = new Label(deskripsi != null ? deskripsi : "");
+        lblDesc.getStyleClass().add("menu-item-desc");
         lblDesc.setWrapText(true);
         lblDesc.setStyle("-fx-font-size:13px; -fx-text-fill:#7A5C3A;");
 
         card.getChildren().addAll(badgeRow, namaHargaRow, lblDesc);
 
-        // Catatan dari admin
         if (catatan != null && !catatan.isBlank()) {
             Region divider = new Region();
             divider.setStyle("-fx-background-color:#E2C4A0; -fx-pref-height:1;");
 
             HBox catatanRow = new HBox(6);
             catatanRow.setAlignment(Pos.CENTER_LEFT);
+
             Label iconCatatan = new Label("💬");
             iconCatatan.setStyle("-fx-font-size:13px;");
             Label lblCatatan = new Label(catatan);
             lblCatatan.setStyle("-fx-font-size:12px; -fx-text-fill:#8B6347; -fx-font-style:italic;");
             lblCatatan.setWrapText(true);
+
             catatanRow.getChildren().addAll(iconCatatan, lblCatatan);
             card.getChildren().addAll(divider, catatanRow);
         }
 
         appendBotNode(card);
-        appendBotMessage("Mau tahu info lain tentang " + namaMenu + " atau menu lainnya? Tanyain aja! 😊");
+    }
+
+    @FXML
+    public void onRekomendasiMenu() {
+        appendUserBubble("Rekomendasi Menu");
+        showRekomendasiMenuHariIni();
     }
 
     private void showFasilitas() {
         updateScreenTag("User-Chat-Fasilitas");
-        appendBotMessage("Fasilitas yang tersedia di " + namaKedai + ":");
+        appendBotMessage("Kami menyediakan berbagai fasilitas seperti wifi dan tempat nyaman untuk bersantai:");
 
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setMaxWidth(300);
-
-        ColumnConstraints cc  = new ColumnConstraints();
-        ColumnConstraints cc2 = new ColumnConstraints();
-        cc.setPercentWidth(50);
-        cc2.setPercentWidth(50);
-        grid.getColumnConstraints().addAll(cc, cc2);
 
         int col = 0, row = 0;
         for (String[] f : fasilitasList) {
@@ -1153,7 +915,7 @@ public class UserChatController {
 
             Label icon = new Label(f[0]);
             icon.setStyle("-fx-font-size:28px;");
-            Label lbl  = new Label(f[1]);
+            Label lbl = new Label(f[1]);
             lbl.getStyleClass().add("facility-card-text");
 
             card.getChildren().addAll(icon, lbl);
@@ -1165,13 +927,18 @@ public class UserChatController {
             if (col > 1) { col = 0; row++; }
         }
 
+        ColumnConstraints cc  = new ColumnConstraints();
+        ColumnConstraints cc2 = new ColumnConstraints();
+        cc.setPercentWidth(50);
+        cc2.setPercentWidth(50);
+        grid.getColumnConstraints().addAll(cc, cc2);
+
         appendBotNode(grid);
-        appendBotMessage("Ada pertanyaan lebih lanjut soal fasilitas? Misalnya \"Ada colokan ga?\" atau \"Bisa bawa laptop?\" 😊");
     }
 
     private void showJamOperasional() {
         updateScreenTag("User-Chat-Jam-Operasional");
-        appendBotMessage("Jam Operasional " + namaKedai + ":");
+        appendBotMessage("Jam Operasional " + namaKedai + " adalah sebagai berikut:");
 
         VBox card = makeCard();
         card.setMaxWidth(320);
@@ -1204,12 +971,11 @@ public class UserChatController {
         card.getChildren().addAll(header, divider, jamRow);
 
         appendBotNode(card);
-        appendBotMessage("Kalau ada info lain yang kamu butuhkan, tanyain aja ya! 😊");
     }
 
     private void showLokasi() {
         updateScreenTag("User-Chat-Lokasi");
-        appendBotMessage("Ini lokasi " + namaKedai + ":");
+        appendBotMessage("Berikut lokasi " + namaKedai + ":");
 
         VBox card = makeCard();
         card.setMaxWidth(360);
@@ -1218,8 +984,10 @@ public class UserChatController {
         // Baris Alamat
         HBox alamatRow = new HBox(8);
         alamatRow.setAlignment(Pos.CENTER_LEFT);
+
         Label pin = new Label("📍");
         pin.setStyle("-fx-font-size:20px; -fx-text-fill:#C8956C;");
+
         VBox alamatInfo = new VBox(2);
         Label namaKedaiLbl = new Label("\"" + namaKedai + "\"");
         namaKedaiLbl.getStyleClass().add("label-subtitle");
@@ -1229,12 +997,13 @@ public class UserChatController {
         alamatInfo.getChildren().addAll(namaKedaiLbl, alamatLbl);
         alamatRow.getChildren().addAll(pin, alamatInfo);
 
-        // Baris Patokan
+        // Baris Patokan (dari DB, sinkron dengan admin)
         HBox patokanRow = new HBox(8);
         patokanRow.setAlignment(Pos.CENTER_LEFT);
         if (patokan != null && !patokan.isBlank()) {
             Label flagIcon = new Label("🚩");
             flagIcon.setStyle("-fx-font-size:16px;");
+
             VBox patokanInfo = new VBox(1);
             Label patokanTitle = new Label("Patokan");
             patokanTitle.setStyle("-fx-font-size:11px; -fx-text-fill:#A07850; -fx-font-weight:bold;");
@@ -1242,6 +1011,7 @@ public class UserChatController {
             patokanLbl.setStyle("-fx-font-size:13px; -fx-text-fill:#3B2414;");
             patokanLbl.setWrapText(true);
             patokanInfo.getChildren().addAll(patokanTitle, patokanLbl);
+
             patokanRow.getChildren().addAll(flagIcon, patokanInfo);
         }
 
@@ -1249,6 +1019,7 @@ public class UserChatController {
         StackPane mapBox = new StackPane();
         mapBox.getStyleClass().add("map-placeholder");
         mapBox.setPrefHeight(140);
+
         VBox mapContent = new VBox(6);
         mapContent.setAlignment(Pos.CENTER);
         Label mapEmoji = new Label("🗺");
@@ -1271,6 +1042,7 @@ public class UserChatController {
             }
         });
 
+        // Patokan hanya ditampilkan kalau tidak kosong
         if (!patokanRow.getChildren().isEmpty()) {
             card.getChildren().addAll(alamatRow, patokanRow, mapBox, btnMaps);
         } else {
@@ -1280,84 +1052,12 @@ public class UserChatController {
         appendBotNode(card);
     }
 
-    // ═════════════════════════════════════════════════════════════
-    //  UI BUILDERS
-    // ═════════════════════════════════════════════════════════════
-
-    /**
-     * Build kartu menu satu item.
-     * @param menuData [nama, deskripsi, hargaStr, gambar_url, (kategori)]
-     * @param highlight true = tampilkan dengan highlight border emas
-     */
-    private VBox buildMenuCard(String[] menuData, boolean highlight) {
-        VBox card = new VBox(6);
-        card.setMaxWidth(400);
-
-        String border = highlight ? "#C8956C" : "#E2D0B5";
-        String bg     = highlight ? "#FFF8F0" : "#FAFAFA";
-        card.setStyle("-fx-background-color:" + bg + "; -fx-background-radius:12; " +
-                      "-fx-border-color:" + border + "; -fx-border-radius:12; " +
-                      "-fx-border-width:1.5; -fx-padding:12;");
-
-        HBox content = new HBox(12);
-        content.setAlignment(Pos.CENTER_LEFT);
-
-        // Gambar atau emoji fallback
-        StackPane imgBox = new StackPane();
-        imgBox.setPrefSize(64, 64);
-        imgBox.setMinSize(64, 64);
-        imgBox.setMaxSize(64, 64);
-        imgBox.setStyle("-fx-background-radius:8; -fx-background-color:#F0E8DC;");
-
-        String gambar = (menuData.length > 3) ? menuData[3] : null;
-        if (gambar != null && !gambar.isBlank()) {
-            File f = new File("images/menu/" + gambar);
-            if (f.exists()) {
-                ImageView iv = new ImageView(new Image(f.toURI().toString(), 64, 64, true, true));
-                iv.setFitWidth(64);
-                iv.setFitHeight(64);
-                imgBox.getChildren().add(iv);
-            } else {
-                imgBox.getChildren().add(emojiLabel("☕"));
-            }
-        } else {
-            imgBox.getChildren().add(emojiLabel("☕"));
-        }
-
-        VBox info = new VBox(4);
-        HBox.setHgrow(info, Priority.ALWAYS);
-
-        Label lblNama = new Label(menuData[0]);
-        lblNama.setStyle("-fx-font-size:15px; -fx-font-weight:bold; -fx-text-fill:#3B2414;");
-
-        Label lblHarga = new Label(menuData[2]);
-        lblHarga.setStyle("-fx-font-size:14px; -fx-font-weight:bold; -fx-text-fill:#C8956C;");
-
-        Label lblDesk = new Label(menuData[1] != null ? menuData[1] : "");
-        lblDesk.setStyle("-fx-font-size:12px; -fx-text-fill:#7A5C3A;");
-        lblDesk.setWrapText(true);
-
-        info.getChildren().addAll(lblNama, lblHarga, lblDesk);
-
-        if (menuData.length > 4 && menuData[4] != null) {
-            Label lblKat = new Label(menuData[4]);
-            lblKat.setStyle("-fx-font-size:10px; -fx-text-fill:#FFFFFF; -fx-background-color:#9B7E67; " +
-                            "-fx-background-radius:10; -fx-padding:1 6 1 6;");
-            info.getChildren().add(lblKat);
-        }
-
-        content.getChildren().addAll(imgBox, info);
-        card.getChildren().add(content);
-        return card;
+    private void showUnknown() {
+        appendBotMessage("Maaf, saya belum memahami pertanyaan itu. " +
+                "Coba tanyakan tentang Menu & Harga, Fasilitas, Jam Operasional, atau Lokasi kami ya!");
     }
 
-    private Label emojiLabel(String emoji) {
-        Label lbl = new Label(emoji);
-        lbl.setStyle("-fx-font-size:24px;");
-        return lbl;
-    }
-
-    // ── Chat Bubble Helpers ───────────────────────────────────────
+    // ── Bubble & Node Helpers ─────────────────────────────────────
 
     private void appendUserBubble(String text) {
         HBox wrap = new HBox();
@@ -1365,10 +1065,10 @@ public class UserChatController {
         Label bubble = new Label(text);
         bubble.getStyleClass().add("chat-bubble-user");
         bubble.setStyle("-fx-font-size:14px; -fx-text-fill:#3B2414;" +
-                        "-fx-background-color:#E0D5C8;" +
-                        "-fx-background-radius:16 2 16 16;" +
-                        "-fx-padding:10 14 10 14;" +
-                        "-fx-max-width:280px;");
+                "-fx-background-color:#E0D5C8;" +
+                "-fx-background-radius:16 2 16 16;" +
+                "-fx-padding:10 14 10 14;" +
+                "-fx-max-width:280px;");
         bubble.setWrapText(true);
         wrap.getChildren().add(bubble);
         chatContainer.getChildren().add(wrap);
@@ -1383,7 +1083,7 @@ public class UserChatController {
         Label bubble = new Label(text);
         bubble.getStyleClass().add("chat-bubble-bot");
         bubble.setWrapText(true);
-        bubble.setMaxWidth(360);
+        bubble.setMaxWidth(340);
         wrap.getChildren().addAll(botIcon, bubble);
         chatContainer.getChildren().add(wrap);
         scrollToBottom();
@@ -1399,7 +1099,7 @@ public class UserChatController {
         scrollToBottom();
     }
 
-    // ── General UI Helpers ────────────────────────────────────────
+    // ── UI Helpers ────────────────────────────────────────────────
 
     private void updateScreenTag(String screenName) {
         if (lblScreenTag != null) lblScreenTag.setText(screenName);
@@ -1433,19 +1133,5 @@ public class UserChatController {
                 javafx.application.Platform.runLater(() ->
                         javafx.application.Platform.runLater(() ->
                                 chatScrollPane.setVvalue(1.0))));
-    }
-
-    // ── Log Chat ke DB ────────────────────────────────────────────
-
-    private void logChatToDb(String pesan, String intent) {
-        try {
-            Connection conn = DatabaseHelper.getConnection();
-            conn.prepareStatement(
-                    "INSERT INTO chat_log (pesan_user, topik, balasan_bot) VALUES ('" +
-                    pesan.replace("'", "''") + "','" + intent + "','Bot membalas intent: " + intent + "')")
-                    .executeUpdate();
-        } catch (Exception e) {
-            System.err.println("Gagal log chat: " + e.getMessage());
-        }
     }
 }
